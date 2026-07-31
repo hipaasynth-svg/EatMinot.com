@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,19 +25,23 @@
     <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
       <div style="position:absolute;inset:0;display:flex;flex-direction:column">
 
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;flex:none">
-          <div style="font-size:19px;font-weight:700;letter-spacing:-0.02em;color:#1C1917">Minot Eats</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px;flex:none">
+          <div style="font-size:19px;font-weight:800;letter-spacing:-0.02em;color:#1C1917">EatMinot</div>
           <button onClick="{{ goDashboard }}" style="border:none;background:none;padding:8px;color:#8A8478;font-size:13px;font-weight:600;cursor:pointer">Lundeen</button>
         </div>
+        <div style="flex:none;padding:0 18px 10px;font-size:10.5px;font-weight:700;letter-spacing:0.02em;color:#A8A296;text-transform:uppercase">Tap. Rate. Earn. · Zero tracking. Period.</div>
 
         <div style="flex:1;position:relative;padding:4px 16px 8px;overflow:hidden;touch-action:pan-y" onPointerDown="{{ onPointerDown }}" onPointerMove="{{ onPointerMove }}" onPointerUp="{{ onPointerUp }}" onPointerCancel="{{ onPointerUp }}">
           <sc-if value="{{ showNextCard }}" hint-placeholder-val="{{ false }}">
             <div style="{{ nextCardStyle }}">
               <div style="position:relative;width:100%;height:220px;flex:none;background:#F3EEE4">
                 <image-slot id="{{ nextHeroSlotId }}" shape="rect" placeholder="Owner photo" style="width:100%;height:100%"></image-slot>
-                <div style="position:absolute;left:14px;bottom:12px;display:flex;align-items:baseline;gap:8px;pointer-events:none">
-                  <span style="font-size:44px;font-weight:800;color:rgba(255,255,255,0.82);letter-spacing:-0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.18)">{{ nextRestaurant.upvotes }}</span>
-                  <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.78);text-shadow:0 1px 6px rgba(0,0,0,0.18)">upvotes</span>
+                <div style="position:absolute;left:14px;bottom:10px;display:flex;flex-direction:column;pointer-events:none">
+                  <div style="display:flex;align-items:baseline;gap:8px">
+                    <span style="font-size:44px;font-weight:800;color:rgba(255,255,255,0.82);letter-spacing:-0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.18)">{{ nextRestaurant.weeklyLabel }}</span>
+                    <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.78);text-shadow:0 1px 6px rgba(0,0,0,0.18)">upvotes / week</span>
+                  </div>
+                  <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.72);text-shadow:0 1px 6px rgba(0,0,0,0.3)">{{ nextRestaurant.monthlyLabel }} mo · {{ nextRestaurant.yearlyLabel }} yr total</span>
                 </div>
                 <div style="position:absolute;right:14px;bottom:14px;display:flex;gap:2px;pointer-events:none">
                   <sc-for list="{{ nextHeroStars }}" as="filled" hint-placeholder-count="5">
@@ -72,9 +76,12 @@
 
             <div style="position:relative;width:100%;height:220px;flex:none;background:#F3EEE4">
               <image-slot id="{{ heroSlotId }}" shape="rect" placeholder="Owner photo" style="width:100%;height:100%"></image-slot>
-              <div style="position:absolute;left:14px;bottom:12px;display:flex;align-items:baseline;gap:8px;pointer-events:none">
-                <span style="font-size:44px;font-weight:800;color:rgba(255,255,255,0.82);letter-spacing:-0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.18)">{{ restaurant.upvotes }}</span>
-                <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.78);text-shadow:0 1px 6px rgba(0,0,0,0.18)">upvotes</span>
+              <div style="position:absolute;left:14px;bottom:10px;display:flex;flex-direction:column;pointer-events:none">
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-size:44px;font-weight:800;color:rgba(255,255,255,0.82);letter-spacing:-0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.18)">{{ restaurant.weeklyLabel }}</span>
+                  <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.78);text-shadow:0 1px 6px rgba(0,0,0,0.18)">upvotes / week</span>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.72);text-shadow:0 1px 6px rgba(0,0,0,0.3)">{{ restaurant.monthlyLabel }} mo · {{ restaurant.yearlyLabel }} yr total</span>
               </div>
               <div style="position:absolute;right:14px;bottom:14px;display:flex;gap:2px;pointer-events:none">
                 <sc-for list="{{ heroStars }}" as="filled" hint-placeholder-count="5">
@@ -109,6 +116,16 @@
                   <div style="font-size:11px;color:#8A8478;margin-top:4px;font-weight:600">{{ restaurant.personal.done }}/{{ restaurant.personal.total }} punches</div>
                 </div>
               </div>
+
+              <sc-if value="{{ showClaimCta }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed rgba(28,25,23,0.18);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+                  <div>
+                    <div style="font-size:13px;font-weight:800;color:#1C1917">Own this spot?</div>
+                    <div style="font-size:12px;color:#8A8478;margin-top:2px;font-weight:600">Claim it for picks, happy hour &amp; punch card</div>
+                  </div>
+                  <div style="font-size:12px;font-weight:800;color:{{ accent }};white-space:nowrap">$59/mo</div>
+                </div>
+              </sc-if>
 
               <sc-if value="{{ restaurant.claimed }}" hint-placeholder-val="{{ false }}">
                 <div>
@@ -148,13 +165,14 @@
           </div>
         </sc-if>
 
-        <div style="flex:none;padding:10px 18px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="flex:none;padding:6px 18px 14px;display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;justify-content:center;gap:6px">
             <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="2">
               <div style="{{ dot }}"></div>
             </sc-for>
           </div>
-          <button onClick="{{ openOverlay }}" style="border:none;background:#1C1917;color:#fff;font-size:14px;font-weight:700;padding:13px;border-radius:12px;cursor:pointer">Live ratings szstem</button>
+          <button onClick="{{ openOverlay }}" style="border:none;background:#1C1917;color:#fff;font-size:14px;font-weight:700;padding:13px;border-radius:12px;cursor:pointer;opacity:{{ rateOpacity }}">{{ rateLabel }}</button>
+          <div style="font-size:10px;color:#A8A296;text-align:center;font-weight:600">Ratings unlock via an in-store NFC tap or QR scan</div>
         </div>
       </div>
     </sc-if>
@@ -192,9 +210,6 @@
               </sc-for>
             </div>
             <div style="font-size:12px;color:rgba(255,255,255,0.72);font-weight:600">{{ overlayHint }}</div>
-            <sc-if value="{{ showSkip }}" hint-placeholder-val="{{ false }}">
-              <button onClick="{{ submitWithoutUpvote }}" style="border:none;background:none;color:rgba(255,255,255,0.85);font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer;padding:4px">Submit rating, no upvote</button>
-            </sc-if>
           </div>
         </sc-if>
       </div>
@@ -205,40 +220,48 @@
       <div style="position:absolute;inset:0;display:flex;flex-direction:column;background:#FFF">
         <div style="flex:none;display:flex;align-items:center;gap:10px;padding:16px 18px 12px;border-bottom:1px solid rgba(28,25,23,0.08)">
           <button onClick="{{ goHome }}" style="border:none;background:none;font-size:15px;color:#8A8478;cursor:pointer;padding:4px">←</button>
-          <div style="font-size:16px;font-weight:800;color:#1C1917">Owner Dashboard</div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#1C1917">Owner Dashboard</div>
+            <div style="font-size:11px;color:#8A8478;font-weight:600">{{ dashRestaurant.name }} · Claimed · $59/mo</div>
+          </div>
         </div>
 
         <div style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:18px">
 
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.taps }}</div>
-              <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">taps / mo</div>
-            </div>
-            <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.ratings }}</div>
-              <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">ratings / mo</div>
-            </div>
-            <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
-              <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.redemptions }}</div>
-              <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">redeemed / mo</div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:8px">Private stats</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.taps }}</div>
+                <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">taps / mo</div>
+              </div>
+              <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.ratings }}</div>
+                <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">ratings / mo</div>
+              </div>
+              <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.redemptions }}</div>
+                <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">redeemed / mo</div>
+              </div>
             </div>
           </div>
 
           <div>
-            <div style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:8px">Hero photo</div>
+            <div style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:8px">Hero photo / logo</div>
             <image-slot id="dashboard-hero" shape="rounded" radius="12" placeholder="Upload hero photo" style="width:100%;height:130px"></image-slot>
           </div>
 
-          <label style="display:flex;flex-direction:column;gap:6px">
-            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Punch-card reward</span>
-            <input value="{{ dashRestaurant.reward }}" onChange="{{ editReward }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
-          </label>
-
-          <label style="display:flex;flex-direction:column;gap:6px">
-            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Coupon valid for (days)</span>
-            <input type="number" min="1" value="{{ dashRestaurant.couponValidDays }}" onChange="{{ editCouponDays }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit;width:100px">
-          </label>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Punch card</span>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:11px;color:#8A8478;font-weight:600">Reward (10 punches = reward)</span>
+              <input value="{{ dashRestaurant.reward }}" onChange="{{ editReward }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:11px;color:#8A8478;font-weight:600">Coupon valid for (days)</span>
+              <input type="number" min="1" value="{{ dashRestaurant.couponValidDays }}" onChange="{{ editCouponDays }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit;width:100px">
+            </label>
+          </div>
 
           <div style="display:flex;flex-direction:column;gap:8px">
             <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Top 3 picks</span>
@@ -261,6 +284,15 @@
             <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Website</span>
             <input value="{{ dashRestaurant.website }}" onChange="{{ editWebsite }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
           </label>
+
+          <div style="border-top:1px solid rgba(28,25,23,0.08);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Tags &amp; extras</span>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-size:13px;color:#1C1917;font-weight:600">2 free NFC tags + 1 QR sticker active</div>
+              <div style="font-size:12px;font-weight:800;color:{{ accent }}">Order more</div>
+            </div>
+            <div style="font-size:12px;color:#8A8478;font-weight:600">Newsletter inclusion: on · Tags stay in-store</div>
+          </div>
         </div>
       </div>
     </sc-if>
@@ -272,6 +304,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:393,&quot;height&quot;:852},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#D5572B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#D5572B&quot;,&quot;#3F6C51&quot;,&quot;#2E4C6D&quot;,&quot;#6B3F4F&quot;]}}">
 const STAR_PATH = "M10 1.2l2.6 5.4 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.9z";
 const STARBURST_PATH = "M50 0l6 28 22-18-10 27 30-4-27 14 27 14-30-4 10 27-22-18-6 28-6-28-22 18 10-27-30 4 27-14-27-14 30 4-10-27 22 18z";
+const RATE_WINDOW_MS = 86400000; // one rating per device per restaurant per 24h
 
 const RAW_RESTAURANTS = [
   ["The Starving Rooster", "30 1st St NE, Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-9pm"],
@@ -311,23 +344,37 @@ function seededRand(seed) {
   return x - Math.floor(x);
 }
 
+// Compact number label, e.g. 1234 -> "1.2k". Used for the large semi-opaque stats.
+function fmtNum(n) {
+  if (n >= 1000) {
+    const k = n / 1000;
+    return (n >= 10000 ? Math.round(k) : (Math.round(k * 10) / 10)).toString().replace(/\.0$/, '') + 'k';
+  }
+  return String(n);
+}
+
 function buildRestaurants() {
   return RAW_RESTAURANTS.map((row, i) => {
     const [name, address, hours] = row;
     const id = i + 1;
     const claimed = id === 1;
     const totalRatings = 60 + Math.round(seededRand(id) * 900);
-    const upvotes = Math.round(totalRatings * (0.55 + seededRand(id + 50) * 0.35));
+    // Yearly total upvotes, with weekly/monthly decayed toward recent activity.
+    const yearlyUpvotes = Math.round(totalRatings * (0.55 + seededRand(id + 50) * 0.35));
+    const monthlyUpvotes = Math.round(yearlyUpvotes * (0.10 + seededRand(id + 600) * 0.12));
+    const weeklyUpvotes = Math.round(monthlyUpvotes * (0.20 + seededRand(id + 700) * 0.25));
     const rating = Math.round((3.6 + seededRand(id + 100) * 1.3) * 10) / 10;
     const done = Math.round(seededRand(id + 200) * 9);
     const base = {
       id, name, address, hours, claimed,
-      upvotes, rating: Math.min(5, rating), totalRatings,
+      weeklyUpvotes, monthlyUpvotes, yearlyUpvotes,
+      rating: Math.min(5, rating), totalRatings,
       personal: { done, total: 10 },
       stats: { taps: Math.round(50 + seededRand(id + 300) * 400), ratings: Math.round(10 + seededRand(id + 400) * 150), redemptions: Math.round(seededRand(id + 500) * 40) },
       reward: 'Free item on your 10th punch',
       couponValidDays: 14,
-      coupon: null
+      coupon: null,
+      ratedAt: 0 // last verified rating from this device (anonymous, local only)
     };
     if (claimed) {
       base.picks = ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'];
@@ -364,6 +411,16 @@ class Component extends DCLogic {
 
   componentWillUnmount() {
     this._timers.forEach(t => clearTimeout(t));
+  }
+
+  // Index of the single claimed restaurant (the one the owner controls).
+  _claimedIndex() {
+    const i = this.state.restaurants.findIndex(r => r.claimed);
+    return i < 0 ? 0 : i;
+  }
+
+  _ratedRecently(r) {
+    return !!(r && r.ratedAt && (Date.now() - r.ratedAt) < RATE_WINDOW_MS);
   }
 
   onPointerDown = (e) => {
@@ -410,7 +467,11 @@ class Component extends DCLogic {
   goDashboard = () => this.setState({ screen: 'dashboard' });
   goHome = () => this.setState({ screen: 'home' });
 
-  openOverlay = () => this.setState({ overlayOpen: true, overlayStep: 'ready', selectedRating: 0, upvoteGiven: false });
+  openOverlay = () => {
+    // Enforce one rating per device per restaurant per 24h.
+    if (this._ratedRecently(this.state.restaurants[this.state.index])) return;
+    this.setState({ overlayOpen: true, overlayStep: 'ready', selectedRating: 0, upvoteGiven: false });
+  };
   closeOverlay = () => this.setState({ overlayOpen: false });
 
   tapStarRow = (e) => {
@@ -418,11 +479,12 @@ class Component extends DCLogic {
     if (overlayStep !== 'ready' && overlayStep !== 'selected') return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
+    // Left side = lower score, right side = higher score.
     const rating = Math.min(5, Math.max(1, Math.ceil(ratio * 5)));
     if (overlayStep === 'ready' && upvoteGiven) {
-      // thumb was touch 1; this star tap is touch 2 — confirm
+      // thumb was touch 1; this star tap is touch 2 — confirm the rating.
       this.setState({ selectedRating: rating });
-      this._confirm(rating, true);
+      this._confirm(rating);
     } else {
       this.setState({ selectedRating: rating, overlayStep: 'selected' });
     }
@@ -431,29 +493,27 @@ class Component extends DCLogic {
   tapThumbs = () => {
     const { overlayStep, selectedRating } = this.state;
     if (overlayStep === 'ready') {
-      // touch 1 on thumb: mark upvote intent, wait for a star tap to pick rating
+      // touch 1 on thumb: mark upvote, wait for a star tap to pick the score.
       this.setState({ upvoteGiven: true });
       return;
     }
     if (overlayStep === 'selected') {
-      // touch 2: confirm with upvote
-      this._confirm(selectedRating, true);
+      // star was touch 1; thumb is touch 2 — confirm.
+      this._confirm(selectedRating);
     }
   };
 
-  submitWithoutUpvote = () => {
-    if (this.state.overlayStep !== 'selected') return;
-    this._confirm(this.state.selectedRating, false);
-  };
-
-  _confirm = (rating, upvote) => {
-    this.setState({ overlayStep: 'confirming', selectedRating: rating, upvoteGiven: upvote });
+  _confirm = (rating) => {
+    this.setState({ overlayStep: 'confirming', selectedRating: rating, upvoteGiven: true });
     this._timers.push(setTimeout(() => {
       this.setState(s => {
         const restaurants = s.restaurants.slice();
         const r = { ...restaurants[s.index] };
         r.totalRatings = r.totalRatings + 1;
-        if (upvote) r.upvotes = r.upvotes + 1;
+        r.weeklyUpvotes = r.weeklyUpvotes + 1;
+        r.monthlyUpvotes = r.monthlyUpvotes + 1;
+        r.yearlyUpvotes = r.yearlyUpvotes + 1;
+        r.ratedAt = Date.now();
         const nextDone = r.personal.done + 1;
         if (nextDone >= r.personal.total) {
           r.personal = { ...r.personal, done: 0 };
@@ -473,19 +533,20 @@ class Component extends DCLogic {
     this._timers.push(setTimeout(() => this.setState({ overlayOpen: false, overlayStep: 'ready', selectedRating: 0, upvoteGiven: false }), 1150));
   };
 
-  editReward = (e) => this._editField(1, 'reward', e.target.value);
-  editHappyHour = (e) => this._editField(1, 'happyHour', e.target.value);
-  editNote = (e) => this._editField(1, 'note', e.target.value);
-  editWebsite = (e) => this._editField(1, 'website', e.target.value);
-  editCouponDays = (e) => this._editField(1, 'couponValidDays', Math.max(1, parseInt(e.target.value, 10) || 1));
+  editReward = (e) => this._editField(this._claimedIndex(), 'reward', e.target.value);
+  editHappyHour = (e) => this._editField(this._claimedIndex(), 'happyHour', e.target.value);
+  editNote = (e) => this._editField(this._claimedIndex(), 'note', e.target.value);
+  editWebsite = (e) => this._editField(this._claimedIndex(), 'website', e.target.value);
+  editCouponDays = (e) => this._editField(this._claimedIndex(), 'couponValidDays', Math.max(1, parseInt(e.target.value, 10) || 1));
   editPick = (i, e) => {
+    const idx = this._claimedIndex();
     this.setState(s => {
       const restaurants = s.restaurants.slice();
-      const r = { ...restaurants[1] };
-      const picks = r.picks.slice();
+      const r = { ...restaurants[idx] };
+      const picks = (r.picks || []).slice();
       picks[i] = e.target.value;
       r.picks = picks;
-      restaurants[1] = r;
+      restaurants[idx] = r;
       return { restaurants };
     });
   };
@@ -497,10 +558,23 @@ class Component extends DCLogic {
     });
   };
 
+  // Add display-only labels (compact stat numbers + a safe website href).
+  _decorate(r) {
+    const website = r.website || '';
+    return {
+      ...r,
+      weeklyLabel: fmtNum(r.weeklyUpvotes),
+      monthlyLabel: fmtNum(r.monthlyUpvotes),
+      yearlyLabel: fmtNum(r.yearlyUpvotes),
+      websiteHref: website ? (/^https?:\/\//.test(website) ? website : 'https://' + website) : '#'
+    };
+  }
+
   renderVals() {
     const s = this.state;
-    const restaurant = s.restaurants[s.index];
-    const dashRestaurant = s.restaurants[1];
+    const rawRestaurant = s.restaurants[s.index];
+    const restaurant = this._decorate(rawRestaurant);
+    const dashRestaurant = s.restaurants[this._claimedIndex()];
     const accent = this.props.accentColor || '#D5572B';
     const accentSoft = accent + '1a';
 
@@ -523,7 +597,7 @@ class Component extends DCLogic {
       onChange: (e) => this.editPick(i, e)
     }));
 
-    let overlayHint = 'Touch twice and done!';
+    const rateDisabled = this._ratedRecently(rawRestaurant);
 
     return {
       isHome: s.screen === 'home' && !s.overlayOpen,
@@ -531,10 +605,11 @@ class Component extends DCLogic {
       accent, accentSoft,
       restaurant,
       dashRestaurant,
-      couponActive: !!(restaurant.coupon && restaurant.coupon.expiresAt > Date.now()),
-      couponExpiryLabel: restaurant.coupon ? new Date(restaurant.coupon.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
-      couponCode: restaurant.coupon ? restaurant.coupon.code : '',
-      couponReward: restaurant.reward || 'Reward earned!',
+      showClaimCta: !restaurant.claimed,
+      couponActive: !!(rawRestaurant.coupon && rawRestaurant.coupon.expiresAt > Date.now()),
+      couponExpiryLabel: rawRestaurant.coupon ? new Date(rawRestaurant.coupon.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
+      couponCode: rawRestaurant.coupon ? rawRestaurant.coupon.code : '',
+      couponReward: rawRestaurant.reward || 'Reward earned!',
       editCouponDays: this.editCouponDays,
       heroSlotId: 'hero-' + restaurant.id,
       heroStars,
@@ -550,6 +625,8 @@ class Component extends DCLogic {
       onPointerDown: this.onPointerDown,
       onPointerMove: this.onPointerMove,
       onPointerUp: this.onPointerUp,
+      rateLabel: rateDisabled ? 'Rated — 24h limit' : 'Tap to rate',
+      rateOpacity: rateDisabled ? '0.45' : '1',
       cardStyle: {
         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
         background: '#fff', borderRadius: '16px', overflow: 'hidden',
@@ -559,7 +636,7 @@ class Component extends DCLogic {
         zIndex: 2
       },
       showNextCard: s.transitioning && s.pendingIndex != null,
-      nextRestaurant: s.pendingIndex != null ? s.restaurants[s.pendingIndex] : restaurant,
+      nextRestaurant: s.pendingIndex != null ? this._decorate(s.restaurants[s.pendingIndex]) : restaurant,
       nextCardStyle: {
         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
         background: '#fff', borderRadius: '16px', overflow: 'hidden',
@@ -583,9 +660,7 @@ class Component extends DCLogic {
       tapStarRow: this.tapStarRow,
       thumbsFill: s.upvoteGiven ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
       overlayStars,
-      overlayHint,
-      showSkip: s.overlayStep === 'selected' && !s.upvoteGiven,
-      submitWithoutUpvote: this.submitWithoutUpvote,
+      overlayHint: 'Thumbs up, then tap a star — twice and done.',
       editReward: this.editReward,
       editHappyHour: this.editHappyHour,
       editNote: this.editNote,
