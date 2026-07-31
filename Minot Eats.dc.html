@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<style>
+  body{margin:0;background:#EDE7DD;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+  a{color:{{ accent }};text-decoration:none}
+  a:hover{opacity:.8}
+  *{box-sizing:border-box}
+  ::-webkit-scrollbar{display:none}
+</style>
+<script src="./image-slot.js"></script>
+</helmet>
+
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 28px 12px; background: url(&quot;./img_3495-ms8ityd5-bwfl.jpeg&quot;) center / cover no-repeat; border-width: 5px; border-style: solid; border-color: #000000; overflow: hidden">
+  <div style="width:393px;height:852px;background:#FFF;border-radius:22px;box-shadow:0 20px 60px rgba(28,25,23,0.18);overflow:hidden;position:relative;border:1px solid rgba(28,25,23,0.08)">
+
+    <!-- HOME SCREEN -->
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;flex:none">
+          <div style="font-size:19px;font-weight:700;letter-spacing:-0.02em;color:#1C1917">Minot Eats</div>
+          <button onClick="{{ goDashboard }}" style="border:none;background:none;padding:8px;color:#8A8478;font-size:13px;font-weight:600;cursor:pointer">Lundeen</button>
+        </div>
+
+        <div style="flex:1;position:relative;padding:4px 16px 8px;overflow:hidden;touch-action:pan-y" onPointerDown="{{ onPointerDown }}" onPointerMove="{{ onPointerMove }}" onPointerUp="{{ onPointerUp }}" onPointerCancel="{{ onPointerUp }}">
+          <sc-if value="{{ showNextCard }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ nextCardStyle }}">
+              <div style="position:relative;width:100%;height:220px;flex:none;background:#F3EEE4">
+                <image-slot id="{{ nextHeroSlotId }}" shape="rect" placeholder="Owner photo" style="width:100%;height:100%"></image-slot>
+                <div style="position:absolute;left:14px;bottom:12px;display:flex;align-items:baseline;gap:8px;pointer-events:none">
+                  <span style="font-size:44px;font-weight:800;color:rgba(255,255,255,0.82);letter-spacing:-0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.18)">{{ nextRestaurant.upvotes }}</span>
+                  <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.78);text-shadow:0 1px 6px rgba(0,0,0,0.18)">upvotes</span>
+                </div>
+                <div style="position:absolute;right:14px;bottom:14px;display:flex;gap:2px;pointer-events:none">
+                  <sc-for list="{{ nextHeroStars }}" as="filled" hint-placeholder-count="5">
+                    <svg width="18" height="18" viewBox="0 0 20 20" style="opacity:0.85">
+                      <path d="{{ starPath }}" fill="{{ filled }}"></path>
+                    </svg>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ nextRestaurant.claimed }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:14px;top:12px;background:rgba(28,25,23,0.72);color:#fff;font-size:11px;font-weight:700;letter-spacing:0.02em;padding:5px 9px;border-radius:20px">CLAIMED</div>
+                </sc-if>
+              </div>
+              <div style="flex:1;overflow-y:auto;padding:16px 18px 20px;display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div style="font-size:22px;font-weight:800;color:#1C1917;letter-spacing:-0.01em">{{ nextRestaurant.name }}</div>
+                  <div style="font-size:13px;color:#8A8478;margin-top:3px">{{ nextRestaurant.address }} · {{ nextRestaurant.hours }}</div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#F8F5EF;border-radius:12px">
+                  <div>
+                    <div style="font-size:11px;color:#8A8478;font-weight:600;letter-spacing:0.02em;text-transform:uppercase">Verified ratings</div>
+                    <div style="font-size:20px;font-weight:800;color:#1C1917;margin-top:2px">{{ nextRestaurant.totalRatings }}</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-size:11px;color:#8A8478;font-weight:600;letter-spacing:0.02em;text-transform:uppercase">Your progress</div>
+                    <div style="font-size:11px;color:#8A8478;margin-top:4px;font-weight:600">{{ nextRestaurant.personal.done }}/{{ nextRestaurant.personal.total }} punches</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          <div style="{{ cardStyle }}">
+
+            <div style="position:relative;width:100%;height:220px;flex:none;background:#F3EEE4">
+              <image-slot id="{{ heroSlotId }}" shape="rect" placeholder="Owner photo" style="width:100%;height:100%"></image-slot>
+              <div style="position:absolute;left:14px;bottom:12px;display:flex;align-items:baseline;gap:8px;pointer-events:none">
+                <span style="font-size:44px;font-weight:800;color:rgba(255,255,255,0.82);letter-spacing:-0.02em;text-shadow:0 1px 6px rgba(0,0,0,0.18)">{{ restaurant.upvotes }}</span>
+                <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.78);text-shadow:0 1px 6px rgba(0,0,0,0.18)">upvotes</span>
+              </div>
+              <div style="position:absolute;right:14px;bottom:14px;display:flex;gap:2px;pointer-events:none">
+                <sc-for list="{{ heroStars }}" as="filled" hint-placeholder-count="5">
+                  <svg width="18" height="18" viewBox="0 0 20 20" style="opacity:0.85">
+                    <path d="{{ starPath }}" fill="{{ filled }}"></path>
+                  </svg>
+                </sc-for>
+              </div>
+              <sc-if value="{{ restaurant.claimed }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:14px;top:12px;background:rgba(28,25,23,0.72);color:#fff;font-size:11px;font-weight:700;letter-spacing:0.02em;padding:5px 9px;border-radius:20px">CLAIMED</div>
+              </sc-if>
+            </div>
+
+            <div style="flex:1;overflow-y:auto;padding:16px 18px 20px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:22px;font-weight:800;color:#1C1917;letter-spacing:-0.01em">{{ restaurant.name }}</div>
+                <div style="font-size:13px;color:#8A8478;margin-top:3px">{{ restaurant.address }} · {{ restaurant.hours }}</div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#F8F5EF;border-radius:12px">
+                <div>
+                  <div style="font-size:11px;color:#8A8478;font-weight:600;letter-spacing:0.02em;text-transform:uppercase">Verified ratings</div>
+                  <div style="font-size:20px;font-weight:800;color:#1C1917;margin-top:2px">{{ restaurant.totalRatings }}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:#8A8478;font-weight:600;letter-spacing:0.02em;text-transform:uppercase">Your progress</div>
+                  <div style="display:flex;gap:3px;margin-top:6px;justify-content:flex-end">
+                    <sc-for list="{{ hashTicks }}" as="tick" hint-placeholder-count="10">
+                      <div style="{{ tick }}"></div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size:11px;color:#8A8478;margin-top:4px;font-weight:600">{{ restaurant.personal.done }}/{{ restaurant.personal.total }} punches</div>
+                </div>
+              </div>
+
+              <sc-if value="{{ restaurant.claimed }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <button onClick="{{ toggleExpand }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border:none;background:none;border-top:1px solid rgba(28,25,23,0.08);cursor:pointer">
+                    <span style="font-size:14px;font-weight:700;color:{{ accent }}">Restaurant's Choice</span>
+                    <span style="font-size:12px;color:#8A8478;font-weight:600">{{ expandLabel }}</span>
+                  </button>
+                  <sc-if value="{{ expanded }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px">
+                      <div>
+                        <div style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:6px">Top picks</div>
+                        <sc-for list="{{ restaurant.picks }}" as="pick" hint-placeholder-count="3">
+                          <div style="font-size:14px;color:#1C1917;padding:6px 0;border-bottom:1px solid rgba(28,25,23,0.06)">{{ pick }}</div>
+                        </sc-for>
+                      </div>
+                      <div style="background:{{ accentSoft }};border-radius:10px;padding:10px 12px">
+                        <div style="font-size:11px;font-weight:700;color:{{ accent }};text-transform:uppercase;letter-spacing:0.02em">Happy hour</div>
+                        <div style="font-size:13px;color:#1C1917;margin-top:3px">{{ restaurant.happyHour }}</div>
+                      </div>
+                      <div style="font-size:13px;color:#57534E;line-height:1.5;font-style:italic">"{{ restaurant.note }}"</div>
+                      <a href="{{ restaurant.websiteHref }}" target="_blank" style="font-size:13px;font-weight:700">{{ restaurant.website }} →</a>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ couponActive }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:none;margin:0 16px 8px;padding:12px 14px;background:#E8F3EA;border:1px solid #B9DDC0;border-radius:12px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:#2F6B3F;letter-spacing:0.02em">{{ couponReward }}</div>
+              <div style="font-size:11px;color:#4C8A57;margin-top:2px;font-weight:600">Code {{ couponCode }} · Exp {{ couponExpiryLabel }}</div>
+            </div>
+            <div style="font-size:10px;font-weight:800;color:#fff;background:#3F6C51;padding:5px 9px;border-radius:20px;letter-spacing:0.03em">EARNED</div>
+          </div>
+        </sc-if>
+
+        <div style="flex:none;padding:10px 18px 16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:center;gap:6px">
+            <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="2">
+              <div style="{{ dot }}"></div>
+            </sc-for>
+          </div>
+          <button onClick="{{ openOverlay }}" style="border:none;background:#1C1917;color:#fff;font-size:14px;font-weight:700;padding:13px;border-radius:12px;cursor:pointer">Live ratings szstem</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- RATING OVERLAY -->
+    <sc-if value="{{ overlayOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:{{ overlayBg }};z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+        <button onClick="{{ closeOverlay }}" style="position:absolute;top:16px;right:16px;border:none;background:rgba(255,255,255,0.18);color:#fff;width:32px;height:32px;border-radius:16px;font-size:15px;cursor:pointer">✕</button>
+
+        <sc-if value="{{ showName }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.01em;margin-bottom:36px;text-align:center">{{ restaurant.name }}</div>
+        </sc-if>
+
+        <sc-if value="{{ showPunch }}" hint-placeholder-val="{{ false }}">
+          <div style="position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center">
+            <svg width="220" height="220" viewBox="0 0 100 100" style="position:absolute;inset:0">
+              <path d="{{ starburstPath }}" fill="#1C1917"></path>
+            </svg>
+            <div style="position:relative;font-size:18px;font-weight:800;color:#FFFFFF;letter-spacing:0.03em">PUNCHED</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showControls }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:26px">
+            <button onClick="{{ tapThumbs }}" style="border:none;background:none;cursor:pointer;padding:8px">
+              <svg width="84" height="84" viewBox="0 0 24 24">
+                <path d="M2 21h3V9H2v12zm19.83-11.06c.11-.25.17-.52.17-.8V8c0-1.1-.9-2-2-2h-5.5l.85-4.1.03-.32c0-.41-.17-.79-.44-1.06L13.83 0 7.41 6.41C7.05 6.78 6.83 7.28 6.83 7.83V19a2 2 0 002 2h9c.82 0 1.54-.5 1.84-1.22l3-7.06z" fill="{{ thumbsFill }}"></path>
+              </svg>
+            </button>
+            <div style="display:flex;gap:6px;cursor:pointer" onClick="{{ tapStarRow }}">
+              <sc-for list="{{ overlayStars }}" as="filled" hint-placeholder-count="5">
+                <svg width="38" height="38" viewBox="0 0 20 20">
+                  <path d="{{ starPath }}" fill="{{ filled }}"></path>
+                </svg>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.72);font-weight:600">{{ overlayHint }}</div>
+            <sc-if value="{{ showSkip }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ submitWithoutUpvote }}" style="border:none;background:none;color:rgba(255,255,255,0.85);font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer;padding:4px">Submit rating, no upvote</button>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- OWNER DASHBOARD -->
+    <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;background:#FFF">
+        <div style="flex:none;display:flex;align-items:center;gap:10px;padding:16px 18px 12px;border-bottom:1px solid rgba(28,25,23,0.08)">
+          <button onClick="{{ goHome }}" style="border:none;background:none;font-size:15px;color:#8A8478;cursor:pointer;padding:4px">←</button>
+          <div style="font-size:16px;font-weight:800;color:#1C1917">Owner Dashboard</div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:18px">
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.taps }}</div>
+              <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">taps / mo</div>
+            </div>
+            <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.ratings }}</div>
+              <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">ratings / mo</div>
+            </div>
+            <div style="background:#F8F5EF;border-radius:10px;padding:10px;text-align:center">
+              <div style="font-size:18px;font-weight:800;color:#1C1917">{{ dashRestaurant.stats.redemptions }}</div>
+              <div style="font-size:10px;color:#8A8478;font-weight:600;margin-top:2px">redeemed / mo</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:8px">Hero photo</div>
+            <image-slot id="dashboard-hero" shape="rounded" radius="12" placeholder="Upload hero photo" style="width:100%;height:130px"></image-slot>
+          </div>
+
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Punch-card reward</span>
+            <input value="{{ dashRestaurant.reward }}" onChange="{{ editReward }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Coupon valid for (days)</span>
+            <input type="number" min="1" value="{{ dashRestaurant.couponValidDays }}" onChange="{{ editCouponDays }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit;width:100px">
+          </label>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Top 3 picks</span>
+            <sc-for list="{{ pickInputs }}" as="p" hint-placeholder-count="3">
+              <input value="{{ p.value }}" onChange="{{ p.onChange }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
+            </sc-for>
+          </div>
+
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Happy hour / special</span>
+            <input value="{{ dashRestaurant.happyHour }}" onChange="{{ editHappyHour }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Owner note</span>
+            <textarea value="{{ dashRestaurant.note }}" onChange="{{ editNote }}" rows="3" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit;resize:none"></textarea>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;font-weight:700;color:#8A8478;text-transform:uppercase;letter-spacing:0.02em">Website</span>
+            <input value="{{ dashRestaurant.website }}" onChange="{{ editWebsite }}" style="border:1px solid rgba(28,25,23,0.14);border-radius:8px;padding:10px 12px;font-size:14px;color:#1C1917;font-family:inherit">
+          </label>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:393,&quot;height&quot;:852},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#D5572B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#D5572B&quot;,&quot;#3F6C51&quot;,&quot;#2E4C6D&quot;,&quot;#6B3F4F&quot;]}}">
+const STAR_PATH = "M10 1.2l2.6 5.4 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.9z";
+const STARBURST_PATH = "M50 0l6 28 22-18-10 27 30-4-27 14 27 14-30-4 10 27-22-18-6 28-6-28-22 18 10-27-30 4 27-14-27-14 30 4-10-27 22 18z";
+
+const RAW_RESTAURANTS = [
+  ["The Starving Rooster", "30 1st St NE, Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-9pm"],
+  ["Ebeneezer's Eatery & Irish Pub", "300 E Central Ave, Minot, ND 58701", "Daily 7am-1am (kitchen closes ~10pm)"],
+  ["Bone's BBQ Smokehouse & Grill", "437 N Broadway, Minot, ND 58703", "Daily ~11am-10/11pm"],
+  ["Ironhorse Kitchen + Bar", "21 E Central Ave, Minot, ND 58701", "Mon-Thu 11am-11pm, Fri-Sat 11am-12am, Closed Sun"],
+  ["Charlie's Main Street Cafe", "113 Main St S, Minot, ND 58701", "Mon-Sat 7am-2pm, Sun 8am-2pm"],
+  ["Kroll's Diner", "1221 20th Ave SE, Minot, ND 58701", "Typical diner hours (verify)"],
+  ["Little Blue Elephant", "22 S Main St, Minot, ND 58701", "Verify hours"],
+  ["Basecamp Indian Kitchen", "1425 24th Ave SW, Minot, ND 58701", "Verify hours"],
+  ["Prairie Sky Breads", "3 1st St SE, Minot, ND 58701", "Morning-afternoon bakery hours"],
+  ["Magic City Hoagies & Sweets", "123 Main St S, Minot, ND 58701", "Verify hours"],
+  ["Minot's Daily Bread", "1500 S Broadway, Minot, ND 58701", "Verify hours"],
+  ["Badlands Restaurant and Bar", "1400 31st Ave SW, Minot, ND 58701", "Verify hours"],
+  ["The Depot and Baggage Claim", "15 Main St N, Minot, ND 58703", "Verify hours"],
+  ["Oishii Ramen", "Downtown Minot", "Verify hours"],
+  ["Don Tapatío", "1445 S Broadway, Minot, ND 58701", "Verify hours"],
+  ["Mi Mexico Restaurant", "3816 S Broadway, Minot, ND 58701", "Verify hours"],
+  ["Baan Rao Thai Restaurant", "Minot, ND", "Verify hours"],
+  ["Ziggy's Caribbean Cuisine", "201 University Ave W, Minot, ND 58703", "Verify hours"],
+  ["China Star", "1631 S Broadway, Minot, ND 58701", "Verify hours"],
+  ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Verify hours"],
+  ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Verify hours"],
+  ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Verify hours"],
+  ["Nite Train Pizza", "Minot, ND", "Verify hours"],
+  ["Uncle Maddio's Pizza Joint", "3310 16th St SW, Minot, ND 58701", "Verify hours"],
+  ["Taco Feliz", "1535 S Broadway, Minot, ND 58701", "Verify hours"],
+  ["El Azteca", "2035 N Broadway, Minot, ND 58703", "Verify hours"],
+  ["Homesteaders Restaurant", "2501 Elk Dr, Minot, ND 58701", "Verify hours"],
+  ["Off The Vine", "15 Main St S, Minot, ND 58701", "Verify hours"],
+  ["Souris River Brewing", "32 3rd St NE, Minot, ND 58703", "Verify hours"],
+  ["Broadway Bean and Bagel", "Minot, ND", "Verify hours"]
+];
+
+function seededRand(seed) {
+  const x = Math.sin(seed * 999) * 10000;
+  return x - Math.floor(x);
+}
+
+function buildRestaurants() {
+  return RAW_RESTAURANTS.map((row, i) => {
+    const [name, address, hours] = row;
+    const id = i + 1;
+    const claimed = id === 1;
+    const totalRatings = 60 + Math.round(seededRand(id) * 900);
+    const upvotes = Math.round(totalRatings * (0.55 + seededRand(id + 50) * 0.35));
+    const rating = Math.round((3.6 + seededRand(id + 100) * 1.3) * 10) / 10;
+    const done = Math.round(seededRand(id + 200) * 9);
+    const base = {
+      id, name, address, hours, claimed,
+      upvotes, rating: Math.min(5, rating), totalRatings,
+      personal: { done, total: 10 },
+      stats: { taps: Math.round(50 + seededRand(id + 300) * 400), ratings: Math.round(10 + seededRand(id + 400) * 150), redemptions: Math.round(seededRand(id + 500) * 40) },
+      reward: 'Free item on your 10th punch',
+      couponValidDays: 14,
+      coupon: null
+    };
+    if (claimed) {
+      base.picks = ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'];
+      base.happyHour = 'Half-price apps, 3–5pm daily';
+      base.note = 'Family-owned since day one — thanks for supporting local, Minot!';
+      base.website = 'starvingrooster.com';
+      base.reward = 'Free appetizer on your 10th punch';
+    }
+    return base;
+  });
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      screen: 'home',
+      index: 0,
+      expanded: false,
+      dragX: 0,
+      dragging: false,
+      startX: 0,
+      overlayOpen: false,
+      overlayStep: 'ready',
+      selectedRating: 0,
+      upvoteGiven: false,
+      transitioning: false,
+      pendingIndex: null,
+      enterX: 0,
+      restaurants: buildRestaurants()
+    };
+    this._timers = [];
+  }
+
+  componentWillUnmount() {
+    this._timers.forEach(t => clearTimeout(t));
+  }
+
+  onPointerDown = (e) => {
+    if (this.state.overlayOpen) return;
+    if (e.currentTarget.setPointerCapture) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    this.setState({ dragging: true, startX: e.clientX, dragX: 0 });
+  };
+  onPointerMove = (e) => {
+    if (!this.state.dragging) return;
+    this.setState({ dragX: e.clientX - this.state.startX });
+  };
+  onPointerUp = () => {
+    const { dragX, index, restaurants, dragging } = this.state;
+    if (!dragging) return;
+    let next = index;
+    if (dragX < -70 && index < restaurants.length - 1) next = index + 1;
+    else if (dragX > 70 && index > 0) next = index - 1;
+
+    if (next === index) {
+      this.setState({ dragging: false, dragX: 0 });
+      return;
+    }
+    if (navigator.vibrate) navigator.vibrate(8);
+    const dir = next > index ? -1 : 1;
+    const W = 420;
+    this.setState({
+      dragging: false,
+      transitioning: true,
+      pendingIndex: next,
+      dragX: dir * W,
+      enterX: -dir * W
+    });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.setState({ enterX: 0 }));
+    });
+    this._timers.push(setTimeout(() => {
+      this.setState({ index: next, transitioning: false, dragX: 0, enterX: 0, expanded: false, pendingIndex: null });
+    }, 260));
+  };
+
+  toggleExpand = () => this.setState(s => ({ expanded: !s.expanded }));
+  goDashboard = () => this.setState({ screen: 'dashboard' });
+  goHome = () => this.setState({ screen: 'home' });
+
+  openOverlay = () => this.setState({ overlayOpen: true, overlayStep: 'ready', selectedRating: 0, upvoteGiven: false });
+  closeOverlay = () => this.setState({ overlayOpen: false });
+
+  tapStarRow = (e) => {
+    const { overlayStep, upvoteGiven } = this.state;
+    if (overlayStep !== 'ready' && overlayStep !== 'selected') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const rating = Math.min(5, Math.max(1, Math.ceil(ratio * 5)));
+    if (overlayStep === 'ready' && upvoteGiven) {
+      // thumb was touch 1; this star tap is touch 2 — confirm
+      this.setState({ selectedRating: rating });
+      this._confirm(rating, true);
+    } else {
+      this.setState({ selectedRating: rating, overlayStep: 'selected' });
+    }
+  };
+
+  tapThumbs = () => {
+    const { overlayStep, selectedRating } = this.state;
+    if (overlayStep === 'ready') {
+      // touch 1 on thumb: mark upvote intent, wait for a star tap to pick rating
+      this.setState({ upvoteGiven: true });
+      return;
+    }
+    if (overlayStep === 'selected') {
+      // touch 2: confirm with upvote
+      this._confirm(selectedRating, true);
+    }
+  };
+
+  submitWithoutUpvote = () => {
+    if (this.state.overlayStep !== 'selected') return;
+    this._confirm(this.state.selectedRating, false);
+  };
+
+  _confirm = (rating, upvote) => {
+    this.setState({ overlayStep: 'confirming', selectedRating: rating, upvoteGiven: upvote });
+    this._timers.push(setTimeout(() => {
+      this.setState(s => {
+        const restaurants = s.restaurants.slice();
+        const r = { ...restaurants[s.index] };
+        r.totalRatings = r.totalRatings + 1;
+        if (upvote) r.upvotes = r.upvotes + 1;
+        const nextDone = r.personal.done + 1;
+        if (nextDone >= r.personal.total) {
+          r.personal = { ...r.personal, done: 0 };
+          const days = r.couponValidDays || 14;
+          r.coupon = {
+            code: 'EAT-' + Math.random().toString(36).slice(2, 7).toUpperCase(),
+            issuedAt: Date.now(),
+            expiresAt: Date.now() + days * 86400000
+          };
+        } else {
+          r.personal = { ...r.personal, done: nextDone };
+        }
+        restaurants[s.index] = r;
+        return { restaurants, overlayStep: 'confirmed' };
+      });
+    }, 160));
+    this._timers.push(setTimeout(() => this.setState({ overlayOpen: false, overlayStep: 'ready', selectedRating: 0, upvoteGiven: false }), 1150));
+  };
+
+  editReward = (e) => this._editField(1, 'reward', e.target.value);
+  editHappyHour = (e) => this._editField(1, 'happyHour', e.target.value);
+  editNote = (e) => this._editField(1, 'note', e.target.value);
+  editWebsite = (e) => this._editField(1, 'website', e.target.value);
+  editCouponDays = (e) => this._editField(1, 'couponValidDays', Math.max(1, parseInt(e.target.value, 10) || 1));
+  editPick = (i, e) => {
+    this.setState(s => {
+      const restaurants = s.restaurants.slice();
+      const r = { ...restaurants[1] };
+      const picks = r.picks.slice();
+      picks[i] = e.target.value;
+      r.picks = picks;
+      restaurants[1] = r;
+      return { restaurants };
+    });
+  };
+  _editField = (idx, field, value) => {
+    this.setState(s => {
+      const restaurants = s.restaurants.slice();
+      restaurants[idx] = { ...restaurants[idx], [field]: value };
+      return { restaurants };
+    });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const restaurant = s.restaurants[s.index];
+    const dashRestaurant = s.restaurants[1];
+    const accent = this.props.accentColor || '#D5572B';
+    const accentSoft = accent + '1a';
+
+    const heroStars = Array.from({ length: 5 }, (_, i) =>
+      i < Math.round(restaurant.rating) ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)'
+    );
+    const hashTicks = Array.from({ length: restaurant.personal.total }, (_, i) => ({
+      width: '4px', height: '14px', borderRadius: '2px',
+      background: i < restaurant.personal.done ? accent : 'rgba(28,25,23,0.12)'
+    }));
+    const dots = s.restaurants.map((_, i) => ({
+      width: '6px', height: '6px', borderRadius: '3px',
+      background: i === s.index ? accent : 'rgba(28,25,23,0.15)'
+    }));
+
+    const overlayStars = Array.from({ length: 5 }, (_, i) => i < s.selectedRating ? '#FFFFFF' : 'rgba(255,255,255,0.32)');
+
+    const pickInputs = (dashRestaurant.picks || []).map((val, i) => ({
+      value: val,
+      onChange: (e) => this.editPick(i, e)
+    }));
+
+    let overlayHint = 'Touch twice and done!';
+
+    return {
+      isHome: s.screen === 'home' && !s.overlayOpen,
+      isDashboard: s.screen === 'dashboard',
+      accent, accentSoft,
+      restaurant,
+      dashRestaurant,
+      couponActive: !!(restaurant.coupon && restaurant.coupon.expiresAt > Date.now()),
+      couponExpiryLabel: restaurant.coupon ? new Date(restaurant.coupon.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
+      couponCode: restaurant.coupon ? restaurant.coupon.code : '',
+      couponReward: restaurant.reward || 'Reward earned!',
+      editCouponDays: this.editCouponDays,
+      heroSlotId: 'hero-' + restaurant.id,
+      heroStars,
+      starPath: STAR_PATH,
+      starburstPath: STARBURST_PATH,
+      hashTicks,
+      dots,
+      expanded: s.expanded,
+      expandLabel: s.expanded ? 'Hide' : 'Show',
+      toggleExpand: this.toggleExpand,
+      goDashboard: this.goDashboard,
+      goHome: this.goHome,
+      onPointerDown: this.onPointerDown,
+      onPointerMove: this.onPointerMove,
+      onPointerUp: this.onPointerUp,
+      cardStyle: {
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        background: '#fff', borderRadius: '16px', overflow: 'hidden',
+        border: '1px solid rgba(28,25,23,0.08)',
+        transform: `translateX(${s.dragX}px)`,
+        transition: s.dragging ? 'none' : 'transform 260ms cubic-bezier(.2,.8,.2,1)',
+        zIndex: 2
+      },
+      showNextCard: s.transitioning && s.pendingIndex != null,
+      nextRestaurant: s.pendingIndex != null ? s.restaurants[s.pendingIndex] : restaurant,
+      nextCardStyle: {
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        background: '#fff', borderRadius: '16px', overflow: 'hidden',
+        border: '1px solid rgba(28,25,23,0.08)',
+        transform: `translateX(${s.enterX}px)`,
+        transition: 'transform 260ms cubic-bezier(.2,.8,.2,1)',
+        zIndex: 1
+      },
+      nextHeroSlotId: s.pendingIndex != null ? 'hero-' + s.restaurants[s.pendingIndex].id : 'hero-' + restaurant.id,
+      nextHeroStars: s.pendingIndex != null
+        ? Array.from({ length: 5 }, (_, i) => i < Math.round(s.restaurants[s.pendingIndex].rating) ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)')
+        : heroStars,
+      openOverlay: this.openOverlay,
+      closeOverlay: this.closeOverlay,
+      overlayOpen: s.overlayOpen,
+      overlayBg: accent + 'ee',
+      showName: s.overlayStep === 'ready' || s.overlayStep === 'selected',
+      showControls: s.overlayStep === 'ready' || s.overlayStep === 'selected',
+      showPunch: s.overlayStep === 'confirmed',
+      tapThumbs: this.tapThumbs,
+      tapStarRow: this.tapStarRow,
+      thumbsFill: s.upvoteGiven ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+      overlayStars,
+      overlayHint,
+      showSkip: s.overlayStep === 'selected' && !s.upvoteGiven,
+      submitWithoutUpvote: this.submitWithoutUpvote,
+      editReward: this.editReward,
+      editHappyHour: this.editHappyHour,
+      editNote: this.editNote,
+      editWebsite: this.editWebsite,
+      pickInputs
+    };
+  }
+}
+
+</script>
+</body>
+</html>
