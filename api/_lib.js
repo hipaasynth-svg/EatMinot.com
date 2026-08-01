@@ -99,15 +99,21 @@ function seed() {
   });
 }
 
-/* ---------- storage adapter ---------- */
+/* ---------- storage adapter ----------
+   Works with either naming scheme Vercel injects when you attach Redis:
+   - Marketplace "Upstash for Redis": UPSTASH_REDIS_REST_URL / _TOKEN
+   - Legacy Vercel KV:                KV_REST_API_URL / _TOKEN
+   Also tolerates a STORAGE_ prefix. */
 var mem = global.__eatmem || (global.__eatmem = new Map());
-function hasKV() { return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN); }
+function kvUrl() { return process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_REST_API_URL || process.env.REDIS_REST_API_URL || ''; }
+function kvToken() { return process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.STORAGE_REST_API_TOKEN || process.env.REDIS_REST_API_TOKEN || ''; }
+function hasKV() { return !!(kvUrl() && kvToken()); }
 function persistent() { return hasKV() || process.env.EAT_DEV_PERSIST === '1'; }
 
 async function kvCmd(cmd) {
-  var res = await fetch(process.env.KV_REST_API_URL, {
+  var res = await fetch(kvUrl(), {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + process.env.KV_REST_API_TOKEN, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + kvToken(), 'Content-Type': 'application/json' },
     body: JSON.stringify(cmd)
   });
   if (!res.ok) throw new Error('KV ' + res.status);
