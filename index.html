@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EDE7DD">
+<title>EatMinot — Tap. Rate. Earn. Zero tracking.</title>
+<style>
+  :root{
+    --bg:#EDE7DD; --ink:#1C1917; --muted:#8A8478; --faint:#A8A296;
+    --card:#FFFFFF; --cream:#F8F5EF; --accent:#D5572B; --line:rgba(28,25,23,0.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; overscroll-behavior:none;
+  }
+  a{color:var(--accent);text-decoration:none}
+  button{font-family:inherit}
+  .app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+
+  /* Header */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 2px}
+  .brand{font-size:20px;font-weight:800;letter-spacing:-0.02em}
+  .brand span{color:var(--accent)}
+  .ownerlink{border:none;background:none;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;padding:8px}
+  .tagline{padding:0 18px 8px;font-size:10.5px;font-weight:800;letter-spacing:0.04em;color:var(--faint);text-transform:uppercase}
+
+  /* Carousel */
+  .stage{flex:1;position:relative;overflow:hidden;padding:2px 12px 6px;touch-action:pan-y}
+  .track{display:flex;will-change:transform}
+  .slide{flex:0 0 100%;padding:0 4px}
+  .card{background:var(--card);border-radius:18px;border:1px solid var(--line);
+    box-shadow:0 14px 40px rgba(28,25,23,0.10);overflow:hidden;display:flex;flex-direction:column;height:100%}
+  .hero{position:relative;width:100%;aspect-ratio:16/10;background:#E9E2D6 center/cover no-repeat;flex:none}
+  .hero .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#B7AE9E;font-size:13px;font-weight:700;letter-spacing:.02em}
+  .stats{position:absolute;left:14px;bottom:10px;display:flex;flex-direction:column;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  .stats .big{display:flex;align-items:baseline;gap:8px}
+  .stats .big b{font-size:42px;font-weight:800;color:rgba(255,255,255,.9);letter-spacing:-.02em;line-height:1}
+  .stats .big s{font-size:13px;font-weight:700;color:rgba(255,255,255,.82);text-decoration:none}
+  .stats .sub{font-size:11px;font-weight:700;color:rgba(255,255,255,.8);margin-top:3px}
+  .starsrow{position:absolute;right:14px;bottom:14px;display:flex;gap:2px;pointer-events:none}
+  .badge-claim{position:absolute;left:14px;top:12px;background:rgba(28,25,23,.72);color:#fff;font-size:11px;font-weight:800;letter-spacing:.02em;padding:5px 9px;border-radius:20px}
+  /* Neon happy hour */
+  .neon{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:6px;
+    background:rgba(10,10,12,.62);border:1px solid #39FF14;border-radius:20px;padding:5px 10px;
+    color:#B6FFB0;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    box-shadow:0 0 8px #39FF14,0 0 18px rgba(57,255,20,.55),inset 0 0 6px rgba(57,255,20,.4);
+    text-shadow:0 0 6px #39FF14;animation:neonpulse 1.5s ease-in-out infinite}
+  .neon .dot{width:8px;height:8px;border-radius:50%;background:#39FF14;box-shadow:0 0 6px #39FF14,0 0 12px #39FF14}
+  @keyframes neonpulse{0%,100%{opacity:1}50%{opacity:.62}}
+  @media (prefers-reduced-motion:reduce){.neon{animation:none}}
+
+  .body{flex:1;display:flex;flex-direction:column;gap:12px;padding:14px 16px 18px;overflow-y:auto}
+  .title{font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .meta{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--cream);border-radius:12px;padding:12px 14px}
+  .lbl{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+  .num{font-size:20px;font-weight:800;margin-top:2px}
+  .ticks{display:flex;gap:3px;margin-top:6px;justify-content:flex-end}
+  .tick{width:4px;height:14px;border-radius:2px;background:rgba(28,25,23,.12)}
+  .tick.on{background:var(--accent)}
+
+  .hhbar{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;padding:10px 13px;
+    background:#0c0c0e;color:#CFFFC7;border:1px solid #39FF14;box-shadow:0 0 10px rgba(57,255,20,.4)}
+  .hhbar .t{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 0 6px #39FF14}
+  .hhbar .s{font-size:12px;color:#CFFFC7;opacity:.85}
+
+  /* Billboard (paid Restaurant's Choice) */
+  .billboard{border-radius:14px;padding:14px;background:linear-gradient(135deg,#241b16,#3a2a20);color:#fff;position:relative;overflow:hidden}
+  .billboard:before{content:"";position:absolute;inset:0;background:radial-gradient(120px 80px at 85% 0%,rgba(213,87,43,.55),transparent)}
+  .billboard .k{position:relative;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#FFB79B}
+  .billboard .pick{position:relative;font-size:15px;font-weight:700;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.12)}
+  .billboard .pick:last-child{border-bottom:none}
+
+  .softbox{background:rgba(213,87,43,.10);border-radius:12px;padding:11px 13px}
+  .note{font-size:13px;color:#57534E;line-height:1.5;font-style:italic}
+  .claimcta{border:1px dashed rgba(28,25,23,.18);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .coupon{margin:0 16px 8px;padding:12px 14px;background:#E8F3EA;border:1px solid #B9DDC0;border-radius:12px;display:flex;align-items:center;justify-content:space-between}
+
+  .foot{flex:none;padding:6px 18px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px}
+  .dots{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+  .dot{width:6px;height:6px;border-radius:3px;background:rgba(28,25,23,.16)}
+  .dot.on{background:var(--accent);width:16px}
+  .btn{border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer}
+  .btn.dark{background:var(--ink);color:#fff}
+  .btn.accent{background:var(--accent);color:#fff}
+  .btn.ghost{background:none;color:var(--muted);font-weight:700}
+  .btn[disabled]{opacity:.45;cursor:default}
+  .hint{font-size:10.5px;color:var(--faint);text-align:center;font-weight:700}
+  .navbtns{position:absolute;top:0;bottom:0;display:flex;align-items:center;z-index:3;pointer-events:none}
+  .navbtns.l{left:2px}.navbtns.r{right:2px}
+  .arrow{pointer-events:auto;border:none;background:rgba(255,255,255,.85);color:var(--ink);width:34px;height:34px;border-radius:50%;
+    box-shadow:0 4px 14px rgba(0,0,0,.15);font-size:17px;font-weight:800;cursor:pointer;display:none}
+  @media(hover:hover){.arrow{display:block}}
+
+  /* Overlay */
+  .ovl{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  .ovl .x{position:absolute;top:16px;right:16px;border:none;background:rgba(255,255,255,.2);color:#fff;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer}
+  .ovl .rn{font-size:22px;font-weight:800;color:#fff;margin-bottom:34px}
+  .thumb{border:none;background:none;cursor:pointer;padding:6px}
+  .starbtns{display:flex;gap:8px;cursor:pointer;margin-top:26px}
+  .ohint{font-size:12px;color:rgba(255,255,255,.8);font-weight:700;margin-top:24px}
+  .skip{margin-top:16px;border:none;background:none;color:rgba(255,255,255,.9);font-size:12px;font-weight:800;text-decoration:underline;cursor:pointer}
+  .punch{position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center}
+  .punch .p{position:relative;font-size:20px;font-weight:800;color:#fff;letter-spacing:.06em}
+
+  /* Simple screens (login / dashboard) */
+  .screen{display:none;flex:1;flex-direction:column}
+  .screen.show{display:flex}
+  .home.hide{display:none}
+  .shead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .shead .back{border:none;background:none;font-size:18px;color:var(--muted);cursor:pointer;padding:4px 6px}
+  .scroll{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field > span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+  input[type=text],input[type=password],input[type=number],input[type=time],textarea,select{
+    border:1px solid rgba(28,25,23,.14);border-radius:9px;padding:11px 12px;font-size:15px;color:var(--ink);font-family:inherit;background:#fff}
+  textarea{resize:none}
+  .lock{position:relative}
+  .lock .veil{position:absolute;inset:-4px;border-radius:12px;background:rgba(248,245,239,.86);backdrop-filter:blur(2px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:12px}
+  .pill{font-size:11px;font-weight:800;color:#fff;background:var(--accent);border-radius:20px;padding:5px 10px}
+  .days{display:flex;gap:5px;flex-wrap:wrap}
+  .day{border:1px solid rgba(28,25,23,.16);background:#fff;border-radius:8px;padding:7px 0;width:38px;text-align:center;font-size:12px;font-weight:800;cursor:pointer;color:var(--muted)}
+  .day.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .banner{background:#FFF4E9;border:1px solid #F3D6B8;color:#8a5a2b;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:600;line-height:1.45}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:700;padding:11px 16px;border-radius:22px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HOME -->
+  <div class="home" id="home">
+    <div class="top">
+      <div class="brand">Eat<span>Minot</span></div>
+      <button class="ownerlink" id="ownerLink">Owner login</button>
+    </div>
+    <div class="tagline">Tap · Rate · Earn — Zero tracking. Period.</div>
+    <div class="stage" id="stage">
+      <div class="navbtns l"><button class="arrow" id="prev">‹</button></div>
+      <div class="navbtns r"><button class="arrow" id="next">›</button></div>
+      <div class="track" id="track"></div>
+    </div>
+    <div class="foot">
+      <div class="dots" id="dots"></div>
+      <button class="btn dark" id="rateBtn">Tap to rate</button>
+      <div class="hint">Ratings unlock via an in-store NFC tap or QR scan</div>
+    </div>
+  </div>
+
+  <!-- OWNER LOGIN -->
+  <div class="screen" id="login">
+    <div class="shead"><button class="back" data-home>←</button><b>Owner login</b></div>
+    <div class="scroll">
+      <div class="banner">Password gate is basic (checked in your browser) — fine for owners, not bank-grade. Default password is your restaurant name (letters only) + <b>26</b>, e.g. <b>thestarvingrooster26</b>.</div>
+      <label class="field"><span>Restaurant</span>
+        <select id="loginPick"></select></label>
+      <label class="field"><span>Password</span>
+        <input type="password" id="loginPw" placeholder="name + 26" autocomplete="off"></label>
+      <button class="btn accent" id="loginBtn">Log in</button>
+      <div id="loginErr" style="color:#B3341E;font-size:13px;font-weight:700;display:none">Wrong password. Try your name (letters only) + 26.</div>
+    </div>
+  </div>
+
+  <!-- OWNER DASHBOARD -->
+  <div class="screen" id="dash">
+    <div class="shead"><button class="back" data-home>←</button><div><b id="dashName">Owner</b><div class="lbl" id="dashTier"></div></div></div>
+    <div class="scroll" id="dashScroll"></div>
+  </div>
+</div>
+
+<div id="overlayHost"></div>
+<div class="toast" id="toast"></div>
+
+<script src="./store.js"></script>
+<script>
+(function(){
+  'use strict';
+  var S = window.EatStore;
+  var STAR = "M10 1.2l2.6 5.4 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.9z";
+  var BURST = "M50 0l6 28 22-18-10 27 30-4-27 14 27 14-30-4 10 27-22-18-6 28-6-28-22 18 10-27-30 4 27-14-27-14 30 4-10-27 22 18z";
+
+  var $ = function(s,el){return (el||document).querySelector(s);};
+  var restaurants = S.load().restaurants;
+  var index = 0;
+  var sessionOwnerId = null; // logged-in owner restaurant id
+
+  function reload(){ restaurants = S.load().restaurants; }
+  function cur(){ return restaurants[index]; }
+  function vibrate(ms){ if (navigator.vibrate) { try{ navigator.vibrate(ms||10); }catch(e){} } }
+  function toast(msg){ var t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');},1800); }
+
+  function starsSvg(rating,size){
+    var out='';
+    for(var i=0;i<5;i++){
+      var f = i<Math.round(rating)?'rgba(255,255,255,.95)':'rgba(255,255,255,.35)';
+      out+='<svg width="'+size+'" height="'+size+'" viewBox="0 0 20 20" style="opacity:.9"><path d="'+STAR+'" fill="'+f+'"></path></svg>';
+    }
+    return out;
+  }
+
+  /* ---------- Carousel render ---------- */
+  function cardHtml(r){
+    var hero = r.photo ? 'style="background-image:url('+esc(r.photo)+')"' : '';
+    var ph = r.photo ? '' : '<div class="ph">Photo coming soon</div>';
+    var happy = S.isHappyHourNow(r);
+    var neon = happy ? '<div class="neon"><span class="dot"></span>Happy Hour</div>' : '';
+    var claim = r.claimed ? '<div class="badge-claim">CLAIMED</div>' : '';
+    var billboard = (r.paid && r.picks && r.picks.filter(function(p){return p&&p.trim();}).length) ?
+      '<div class="billboard"><div class="k">★ Restaurant\'s Choice</div>'+
+      r.picks.filter(function(p){return p&&p.trim();}).map(function(p){return '<div class="pick">'+esc(p)+'</div>';}).join('')+
+      '</div>' : '';
+    var hhbar = happy ?
+      '<div class="hhbar"><div class="t">⚡ Happy hour now</div><div class="s">'+esc(r.happyHour.special||'')+' · til '+S.to12h(r.happyHour.end)+'</div></div>' : '';
+    var claimcta = !r.claimed ?
+      '<div class="claimcta"><div><div style="font-weight:800;font-size:13px">Own this spot?</div><div class="lbl" style="text-transform:none;margin-top:2px">Claim it for picks, happy hour &amp; punch card</div></div><div style="font-weight:800;color:var(--accent);white-space:nowrap">$59/mo</div></div>' : '';
+    var ticks='';
+    for(var i=0;i<r.personal.total;i++){ ticks+='<div class="tick'+(i<r.personal.done?' on':'')+'"></div>'; }
+    var couponActive = r.coupon && r.coupon.expiresAt>Date.now();
+    var coupon = couponActive ?
+      '<div class="coupon"><div><div style="font-size:12px;font-weight:800;color:#2F6B3F">'+esc(r.reward||'Reward earned!')+'</div><div style="font-size:11px;color:#4C8A57;font-weight:700;margin-top:2px">Code '+esc(r.coupon.code)+' · exp '+new Date(r.coupon.expiresAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</div></div><div style="font-size:10px;font-weight:800;color:#fff;background:#3F6C51;padding:5px 9px;border-radius:20px">EARNED</div></div>' : '';
+
+    return '<div class="slide"><div class="card">'+
+      '<div class="hero" '+hero+'>'+ph+
+        '<div class="stats"><div class="big"><b>'+S.fmtNum(r.weekly)+'</b><s>upvotes / week</s></div>'+
+        '<div class="sub">'+S.fmtNum(r.monthly)+' mo · '+S.fmtNum(r.yearly)+' yr total</div></div>'+
+        '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
+      '</div>'+
+      '<div class="body">'+
+        '<div><div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.address)+' · '+esc(r.hours)+'</div></div>'+
+        hhbar+
+        '<div class="row"><div><div class="lbl">Verified ratings</div><div class="num">'+r.totalRatings+'</div></div>'+
+          '<div style="text-align:right"><div class="lbl">Your progress</div><div class="ticks">'+ticks+'</div>'+
+          '<div class="lbl" style="text-transform:none;margin-top:4px">'+r.personal.done+'/'+r.personal.total+' punches</div></div></div>'+
+        billboard+claimcta+coupon+
+      '</div></div></div>';
+  }
+
+  function renderTrack(){
+    $('#track').innerHTML = restaurants.map(cardHtml).join('');
+    renderDots(); layout(true);
+  }
+  function renderDots(){
+    var d='';
+    for(var i=0;i<restaurants.length;i++){ d+='<div class="dot'+(i===index?' on':'')+'"></div>'; }
+    $('#dots').innerHTML=d;
+    var r=cur();
+    var disabled = S.ratedRecently(r);
+    var b=$('#rateBtn'); b.disabled=disabled; b.textContent = disabled?'Rated — 24h limit':'Tap to rate';
+  }
+
+  /* ---------- Smooth swipe ---------- */
+  var track, stage, dragging=false, startX=0, startY=0, baseX=0, curX=0, lockAxis=null, width=0;
+  function layout(instant){
+    width = stage.clientWidth;
+    baseX = -index*width;
+    if(instant){ track.style.transition='none'; }
+    track.style.transform='translate3d('+baseX+'px,0,0)';
+    if(instant){ void track.offsetWidth; track.style.transition=''; }
+  }
+  function snap(to){
+    index = Math.max(0, Math.min(restaurants.length-1, to));
+    track.style.transition='transform .34s cubic-bezier(.22,.61,.36,1)';
+    track.style.transform='translate3d('+(-index*width)+'px,0,0)';
+    renderDots();
+  }
+  function onDown(e){
+    if(document.querySelector('.ovl')) return;
+    dragging=true; lockAxis=null;
+    var p=point(e); startX=p.x; startY=p.y; baseX=-index*width; curX=baseX;
+    track.style.transition='none';
+    stage.setPointerCapture && e.pointerId!=null && (function(){try{stage.setPointerCapture(e.pointerId);}catch(_){}})();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    var p=point(e), dx=p.x-startX, dy=p.y-startY;
+    if(lockAxis==null){ lockAxis = Math.abs(dx)>Math.abs(dy) ? 'x':'y'; }
+    if(lockAxis==='y') return;
+    if(e.cancelable) e.preventDefault();
+    // rubber-band at the ends
+    var t=baseX+dx;
+    var min=-(restaurants.length-1)*width, max=0;
+    if(t>max) t=max+(t-max)*0.35;
+    if(t<min) t=min+(t-min)*0.35;
+    curX=t; track.style.transform='translate3d('+t+'px,0,0)';
+  }
+  function onUp(e){
+    if(!dragging) return; dragging=false;
+    if(lockAxis==='y'){ layout(true); return; }
+    var moved = curX-baseX;
+    var threshold = Math.max(48, width*0.18);
+    var target=index;
+    if(moved<-threshold) target=index+1;
+    else if(moved>threshold) target=index-1;
+    target=Math.max(0,Math.min(restaurants.length-1,target));
+    if(target!==index){ vibrate(12); }      // click vibration on each turn
+    snap(target);
+  }
+  function point(e){ return e.touches&&e.touches[0]?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}; }
+
+  /* ---------- Rating overlay (two-tap, skip-upvote allowed) ---------- */
+  var ov=null;
+  function openOverlay(){
+    var r=cur();
+    if(S.ratedRecently(r)) return;
+    ov={step:'ready', rating:0, upvote:false};
+    drawOverlay();
+  }
+  function drawOverlay(){
+    var r=cur();
+    var accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#D5572B';
+    var host=$('#overlayHost');
+    if(ov.step==='confirmed'){
+      host.innerHTML='<div class="ovl" style="background:'+accent+'ee"><div class="punch">'+
+        '<svg width="220" height="220" viewBox="0 0 100 100" style="position:absolute;inset:0"><path d="'+BURST+'" fill="#1C1917"></path></svg>'+
+        '<div class="p">PUNCHED</div></div></div>';
+      return;
+    }
+    var showName = ov.step==='ready'||ov.step==='selected';
+    var thumbFill = ov.upvote?'#fff':'rgba(255,255,255,.5)';
+    var starsHtml='';
+    for(var i=0;i<5;i++){ var f=i<ov.rating?'#fff':'rgba(255,255,255,.32)'; starsHtml+='<svg width="40" height="40" viewBox="0 0 20 20"><path d="'+STAR+'" fill="'+f+'"></path></svg>'; }
+    var skip = (ov.step==='selected' && !ov.upvote) ?
+      '<button class="skip" id="ovSkip">Submit stars only — no upvote</button>' : '';
+    host.innerHTML='<div class="ovl" style="background:'+accent+'ee">'+
+      '<button class="x" id="ovX">✕</button>'+
+      (showName?'<div class="rn">'+esc(r.name)+'</div>':'')+
+      '<button class="thumb" id="ovThumb"><svg width="82" height="82" viewBox="0 0 24 24"><path d="M2 21h3V9H2v12zm19.83-11.06c.11-.25.17-.52.17-.8V8c0-1.1-.9-2-2-2h-5.5l.85-4.1.03-.32c0-.41-.17-.79-.44-1.06L13.83 0 7.41 6.41C7.05 6.78 6.83 7.28 6.83 7.83V19a2 2 0 002 2h9c.82 0 1.54-.5 1.84-1.22l3-7.06z" fill="'+thumbFill+'"></path></svg></button>'+
+      '<div class="starbtns" id="ovStars">'+starsHtml+'</div>'+
+      '<div class="ohint">'+(ov.upvote?'Now tap a star to finish':'Tap 👍 then a star — or just tap stars')+'</div>'+
+      skip+'</div>';
+    $('#ovX').onclick=closeOverlay;
+    $('#ovThumb').onclick=tapThumb;
+    $('#ovStars').onclick=tapStars;
+    if($('#ovSkip')) $('#ovSkip').onclick=function(){ confirmRate(ov.rating,false); };
+  }
+  function closeOverlay(){ ov=null; $('#overlayHost').innerHTML=''; }
+  function tapThumb(){
+    if(ov.step==='ready'){ ov.upvote=true; drawOverlay(); return; }     // touch 1
+    if(ov.step==='selected'){ confirmRate(ov.rating,true); }             // touch 2 (stars first)
+  }
+  function tapStars(e){
+    if(ov.step!=='ready'&&ov.step!=='selected') return;
+    var rect=e.currentTarget.getBoundingClientRect();
+    var ratio=(e.clientX-rect.left)/rect.width;             // left=lower, right=higher
+    var rating=Math.min(5,Math.max(1,Math.ceil(ratio*5)));
+    if(ov.step==='ready'&&ov.upvote){ ov.rating=rating; confirmRate(rating,true); } // touch 2 (thumb first)
+    else { ov.rating=rating; ov.step='selected'; drawOverlay(); }
+  }
+  function confirmRate(rating,upvote){
+    var id=cur().id;
+    S.update(id,function(r){
+      r.totalRatings+=1;
+      if(upvote){ r.weekly+=1; r.monthly+=1; r.yearly+=1; }
+      r.ratedAt=Date.now();
+      var nd=r.personal.done+1;
+      if(nd>=r.personal.total){
+        r.personal.done=0;
+        var days=r.couponValidDays||14;
+        r.coupon={code:'EAT-'+Math.random().toString(36).slice(2,7).toUpperCase(),issuedAt:Date.now(),expiresAt:Date.now()+days*86400000};
+      } else { r.personal.done=nd; }
+    });
+    reload();
+    ov.step='confirmed'; drawOverlay();
+    setTimeout(function(){ closeOverlay(); renderTrack(); }, 1150);
+  }
+
+  /* ---------- Owner login + dashboard ---------- */
+  function showScreen(id){
+    $('#home').classList.toggle('hide', id!=='home');
+    ['login','dash'].forEach(function(s){ $('#'+s).classList.toggle('show', s===id); });
+  }
+  function openLogin(){
+    var sel=$('#loginPick');
+    sel.innerHTML=restaurants.map(function(r){return '<option value="'+r.id+'">'+esc(r.name)+'</option>';}).join('');
+    $('#loginPw').value=''; $('#loginErr').style.display='none';
+    showScreen('login');
+  }
+  function doLogin(){
+    var id=parseInt($('#loginPick').value,10);
+    var r=S.get(id);
+    var pw=$('#loginPw').value;
+    if(r && pw===r.password){ sessionOwnerId=id; openDash(id); }
+    else { $('#loginErr').style.display='block'; }
+  }
+
+  function openDash(id){
+    reload();
+    var r=S.get(id);
+    $('#dashName').textContent=r.name;
+    $('#dashTier').textContent=(r.paid?'Claimed · Paid · $59/mo':'Claimed (free) — upgrade to unlock photo & billboard');
+    $('#dashTier').style.textTransform='none';
+    renderDash(r);
+    showScreen('dash');
+  }
+  function renderDash(r){
+    var paid=r.paid;
+    var host=$('#dashScroll');
+    var photoInner =
+      '<div class="field"><span>Restaurant photo / logo</span>'+
+        '<div style="aspect-ratio:16/10;border-radius:12px;background:#EDE7DD center/cover no-repeat;'+(r.photo?'background-image:url('+esc(r.photo)+')':'')+';display:flex;align-items:center;justify-content:center;color:#B7AE9E;font-weight:700;font-size:13px">'+(r.photo?'':'No photo yet')+'</div>'+
+        '<input type="file" accept="image/*" id="ownerPhoto" '+(paid?'':'disabled')+'></div>';
+    var photoBlock = paid ? photoInner :
+      '<div class="lock">'+photoInner+
+        '<div class="veil"><div class="pill">$59/mo</div><div style="font-weight:800;font-size:13px">Upgrade to change your photo</div>'+
+        '<div class="lbl" style="text-transform:none">Also unlocks the Restaurant\'s Choice billboard</div>'+
+        '<button class="btn accent" id="ownerUpgrade" style="padding:10px 16px">Upgrade — $59/mo</button></div></div>';
+
+    host.innerHTML =
+      '<div class="banner">Changes save on this device. To have every customer see them we add a shared database next — say the word. The <b>$59 upgrade</b> button is a placeholder until real Stripe billing is connected.</div>'+
+      photoBlock +
+      section('Restaurant\'s Choice billboard'+(paid?'':' (paid)'),
+        (paid?'':'<div class="lbl" style="text-transform:none;margin-bottom:6px">Upgrade to publish these on your card.</div>')+
+        pickField(0,r)+pickField(1,r)+pickField(2,r)) +
+      section('Happy hour', happyBlock(r)) +
+      section('Punch card',
+        field('Reward (10 punches = reward)','<input type="text" id="fReward" value="'+esc(r.reward||'')+'">')+
+        field('Coupon valid for (days)','<input type="number" min="1" id="fDays" value="'+(r.couponValidDays||14)+'" style="width:110px">')) +
+      section('Details',
+        field('Owner note','<textarea id="fNote" rows="3">'+esc(r.note||'')+'</textarea>')+
+        field('Website','<input type="text" id="fWebsite" value="'+esc(r.website||'')+'" placeholder="yourplace.com">')) +
+      field('Change password','<input type="password" id="fPw" placeholder="leave blank to keep current">')+
+      '<button class="btn accent" id="ownerSave">Save changes</button>'+
+      '<button class="btn ghost" id="ownerLogout">Log out</button>';
+
+    // wire
+    if(paid && $('#ownerPhoto')) $('#ownerPhoto').onchange=function(e){ handlePhoto(e.target.files[0], r.id, function(){ openDash(r.id); }); };
+    if($('#ownerUpgrade')) $('#ownerUpgrade').onclick=function(){ S.update(r.id,function(x){x.paid=true;}); reload(); toast('Upgraded (placeholder — Stripe next)'); openDash(r.id); };
+    bindDays(r.id);
+    $('#ownerSave').onclick=function(){ saveOwner(r.id); };
+    $('#ownerLogout').onclick=function(){ sessionOwnerId=null; goHome(); };
+  }
+  function section(title, inner){ return '<div class="field"><span>'+esc(title)+'</span>'+inner+'</div>'; }
+  function field(label, inner){ return '<label class="field"><span style="font-weight:700;color:var(--muted)">'+esc(label)+'</span>'+inner+'</label>'; }
+  function pickField(i,r){ var v=(r.picks&&r.picks[i])||''; return '<input type="text" data-pick="'+i+'" placeholder="Top pick #'+(i+1)+'" value="'+esc(v)+'" '+(r.paid?'':'')+'>'; }
+  function happyBlock(r){
+    var hh=r.happyHour||{};
+    var names=['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var days=names.map(function(n,i){ return '<div class="day'+((hh.days||[]).indexOf(i)>-1?' on':'')+'" data-day="'+i+'">'+n+'</div>'; }).join('');
+    return '<label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin-bottom:2px"><input type="checkbox" id="hhOn" '+(hh.enabled?'checked':'')+' style="width:18px;height:18px"> Happy hour enabled</label>'+
+      '<div class="days" id="hhDays">'+days+'</div>'+
+      '<div style="display:flex;gap:10px;margin-top:8px">'+
+        '<label class="field" style="flex:1"><span style="font-weight:700;color:var(--muted)">Start</span><input type="time" id="hhStart" value="'+esc(hh.start||'15:00')+'"></label>'+
+        '<label class="field" style="flex:1"><span style="font-weight:700;color:var(--muted)">End</span><input type="time" id="hhEnd" value="'+esc(hh.end||'17:00')+'"></label>'+
+      '</div>'+
+      field('Special (small box)','<input type="text" id="hhSpecial" maxlength="60" value="'+esc(hh.special||'')+'" placeholder="e.g. $2 off drafts, half-price apps">');
+  }
+  function bindDays(id){
+    var wrap=$('#hhDays'); if(!wrap) return;
+    wrap.querySelectorAll('.day').forEach(function(el){
+      el.onclick=function(){ el.classList.toggle('on'); };
+    });
+  }
+  function saveOwner(id){
+    var picks=[]; document.querySelectorAll('[data-pick]').forEach(function(el){ picks[parseInt(el.getAttribute('data-pick'),10)]=el.value; });
+    var days=[]; document.querySelectorAll('#hhDays .day.on').forEach(function(el){ days.push(parseInt(el.getAttribute('data-day'),10)); });
+    var newPw=$('#fPw')?$('#fPw').value:'';
+    var res=S.update(id,function(r){
+      r.picks=picks;
+      r.reward=$('#fReward').value;
+      r.couponValidDays=Math.max(1,parseInt($('#fDays').value,10)||1);
+      r.note=$('#fNote').value;
+      r.website=$('#fWebsite').value;
+      r.happyHour={ enabled:$('#hhOn').checked, days:days, start:$('#hhStart').value||'15:00', end:$('#hhEnd').value||'17:00', special:$('#hhSpecial').value };
+      if(newPw && newPw.trim()) r.password=newPw.trim();
+    });
+    reload();
+    if(res.ok){ toast('Saved'); openDash(id); }
+    else { toast('Storage full — remove a photo'); }
+  }
+
+  function handlePhoto(file, id, cb){
+    if(!file) return;
+    S.fileToDataUrl(file).then(function(url){
+      var res=S.update(id,function(r){ r.photo=url; });
+      reload();
+      if(res.ok){ toast('Photo updated'); } else { toast('Too large — try a smaller image'); }
+      cb && cb();
+    }).catch(function(){ toast('Could not read that image'); });
+  }
+
+  function goHome(){ reload(); renderTrack(); showScreen('home'); }
+
+  /* ---------- utils ---------- */
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+  /* ---------- init ---------- */
+  function init(){
+    stage=$('#stage'); track=$('#track');
+    renderTrack();
+    // pointer/touch
+    var usePointer = 'PointerEvent' in window;
+    if(usePointer){
+      stage.addEventListener('pointerdown',onDown);
+      stage.addEventListener('pointermove',onMove,{passive:false});
+      window.addEventListener('pointerup',onUp);
+      stage.addEventListener('pointercancel',onUp);
+    } else {
+      stage.addEventListener('touchstart',onDown,{passive:true});
+      stage.addEventListener('touchmove',onMove,{passive:false});
+      window.addEventListener('touchend',onUp);
+    }
+    $('#prev').onclick=function(){ if(index>0){ vibrate(12); snap(index-1);} };
+    $('#next').onclick=function(){ if(index<restaurants.length-1){ vibrate(12); snap(index+1);} };
+    document.addEventListener('keydown',function(e){
+      if(document.querySelector('.ovl')||!$('#home').classList.contains('hide')===false){}
+      if($('#home').classList.contains('hide')) return;
+      if(e.key==='ArrowLeft'&&index>0){ vibrate(10); snap(index-1); }
+      if(e.key==='ArrowRight'&&index<restaurants.length-1){ vibrate(10); snap(index+1); }
+    });
+    window.addEventListener('resize',function(){ layout(true); });
+    window.addEventListener('orientationchange',function(){ setTimeout(function(){layout(true);},250); });
+
+    $('#rateBtn').onclick=openOverlay;
+    $('#ownerLink').onclick=openLogin;
+    $('#loginBtn').onclick=doLogin;
+    $('#loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
+    document.querySelectorAll('[data-home]').forEach(function(b){ b.onclick=goHome; });
+
+    // Re-evaluate happy-hour neon each minute so it turns on/off by the clock.
+    setInterval(function(){ if($('#home').classList.contains('hide')) return; renderTrack(); }, 60000);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+</body>
+</html>
