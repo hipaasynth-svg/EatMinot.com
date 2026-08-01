@@ -42,11 +42,41 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   in the admin console.
 - **Admin:** `minot-admin` (changeable inside the admin console).
 
-### Known limits (phase 2 — needs a backend)
-- **Storage is per-device** (browser `localStorage`). Owner edits and uploaded photos
-  live in that browser; a shared database is needed for every customer to see them.
-- **Password checks run client-side** — good enough to keep casual users out, not real
-  security.
-- **The $59 upgrade button is a placeholder** — real Stripe billing is not yet wired.
+## Shared database (turn on cross-device sync)
+
+The app runs in two modes automatically:
+
+- **Local mode** (default before setup): data lives in each browser's `localStorage`.
+  The site fully works, but owner edits/photos/ratings are per-device.
+- **Shared mode**: once a Redis store is attached, `GET /api/state` reports
+  `persistent:true` and the app reads/writes the shared database — every visitor sees
+  the same ratings, photos, and owner content.
+
+The backend is plain Vercel serverless functions in `api/` (no npm dependencies). They
+talk to an Upstash Redis store using the standard `KV_REST_API_URL` / `KV_REST_API_TOKEN`
+environment variables that Vercel injects when you attach the store.
+
+### One-time setup in Vercel (~2 min)
+1. Open your project → **Storage → Create Database → Upstash for Redis** (Marketplace) →
+   connect it to this project. Vercel adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`
+   automatically.
+2. **Redeploy** (Deployments → ⋯ → Redeploy) so the functions pick up the new env vars.
+3. Done — the app flips to shared mode on the next load. (Optional: set
+   `EAT_ADMIN_PASSWORD` to change the admin password from the `minot-admin` default.)
+
+Photos are stored under separate Redis keys and downscaled client-side to keep them small.
+
+### API surface (`/api`)
+- `GET  /api/state` → public restaurants (+ `persistent` flag), no passwords
+- `POST /api/rate` `{id, stars, upvote}` → updates shared upvotes / verified ratings / stars
+- `POST /api/owner` `{action:'login'|'update'|'photo', id, password, …}` → owner controls
+- `POST /api/admin` `{password, action, …}` → photos, Claimed/Paid flags, list, reset
+- `GET  /api/photo?id=` → a restaurant's photo
+
+### Still placeholder (phase 2)
+- **Client-side password checks / plaintext passwords** — good enough to gate owners, not
+  bank-grade. A real auth provider is the next step.
+- **The $59 upgrade button** — real Stripe billing is not yet wired; the admin console
+  toggles Paid manually for now.
 
 `Minot Eats.dc.html` is the earlier design-tool prototype, kept for reference.
