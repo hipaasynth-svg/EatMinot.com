@@ -1,8 +1,9 @@
 /* EatMinot backend shared library.
    Storage: Vercel-provisioned Upstash Redis (KV) via its REST command API.
-   No npm dependencies — uses global fetch (Node 18+ on Vercel).
+   No npm dependencies — uses global fetch (Node 18+ on Vercel) and built-in crypto.
    Falls back to an in-process Map for local dev / when no store is attached. */
 'use strict';
+var crypto = require('crypto');
 
 var STATE_KEY = 'eatminot:state:v1';
 var PHOTO_KEY = function (id) { return 'eatminot:photo:' + id; };
@@ -43,6 +44,40 @@ var RAW = [
 function slug(name) { return String(name).toLowerCase().replace(/[^a-z0-9]/g, ''); }
 function defaultPassword(name) { return slug(name) + '26'; }
 
+/* ---------- password hashing (salted SHA-256, no plaintext at rest) ---------- */
+function hashPw(pw) {
+  var salt = crypto.randomBytes(9).toString('hex');
+  return 'sha256$' + salt + '$' + crypto.createHash('sha256').update(salt + ':' + pw).digest('hex');
+}
+function verifyPw(pw, stored) {
+  if (!stored) return false;
+  if (stored.indexOf('sha256$') !== 0) return pw === stored; // legacy plaintext, still accepted
+  var p = stored.split('$');
+  return crypto.createHash('sha256').update(p[1] + ':' + pw).digest('hex') === p[2];
+}
+function isDefaultPw(name, stored) { return verifyPw(defaultPassword(name), stored); }
+
+/* ---------- signed owner session tokens (HMAC) ---------- */
+function sessionSecret() { return process.env.EAT_SESSION_SECRET || 'eatminot-dev-secret-change-me'; }
+function b64u(s) { return Buffer.from(s).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function signToken(id, ttlMs) {
+  var exp = Date.now() + (ttlMs || 43200000); // 12h
+  var payload = id + '.' + exp;
+  var sig = crypto.createHmac('sha256', sessionSecret()).update(payload).digest('hex');
+  return b64u(payload) + '.' + sig;
+}
+function verifyToken(tok) {
+  if (!tok || tok.indexOf('.') < 0) return null;
+  var i = tok.lastIndexOf('.'), payloadB = tok.slice(0, i), sig = tok.slice(i + 1);
+  var payload;
+  try { payload = Buffer.from(payloadB.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString(); } catch (e) { return null; }
+  var good = crypto.createHmac('sha256', sessionSecret()).update(payload).digest('hex');
+  if (good !== sig) return null;
+  var parts = payload.split('.'), id = parseInt(parts[0], 10), exp = parseInt(parts[1], 10);
+  if (!id || !exp || Date.now() > exp) return null;
+  return id;
+}
+
 // No seeded stars or upvotes — every public metric starts at zero and only
 // moves on a real verified rating.
 function seed() {
@@ -52,7 +87,8 @@ function seed() {
     var claimed = id === 1; // one demo paid listing so the paid features are visible
     return {
       id: id, name: name, address: row[1], hours: row[2],
-      claimed: claimed, paid: claimed, password: defaultPassword(name),
+      claimed: claimed, paid: claimed, password: hashPw(defaultPassword(name)),
+      stripeCustomerId: null, stripeSubscriptionId: null,
       hasPhoto: false,
       upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0,
       picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
@@ -104,14 +140,42 @@ function publicView(s) {
 }
 
 /* ---------- request helpers ---------- */
-function readBody(req) {
+function rawBody(req) {
   return new Promise(function (resolve) {
-    if (req.body && typeof req.body === 'object') { resolve(req.body); return; }
+    if (typeof req.body === 'string') { resolve(req.body); return; }
+    if (req.body && typeof req.body === 'object') { resolve(JSON.stringify(req.body)); return; }
     var data = '';
     req.on('data', function (c) { data += c; });
-    req.on('end', function () { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { resolve({}); } });
-    req.on('error', function () { resolve({}); });
+    req.on('end', function () { resolve(data); });
+    req.on('error', function () { resolve(''); });
   });
+}
+function readBody(req) {
+  return rawBody(req).then(function (raw) { try { return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } });
+}
+
+/* ---------- Stripe (REST, no SDK) ---------- */
+function stripeKey() { return process.env.STRIPE_SECRET_KEY || ''; }
+function stripeConfigured() { return !!stripeKey(); }
+function form(obj) {
+  var parts = [];
+  Object.keys(obj).forEach(function (k) { parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(obj[k])); });
+  return parts.join('&');
+}
+async function stripe(path, method, params) {
+  var opts = { method: method || 'GET', headers: { Authorization: 'Bearer ' + stripeKey() } };
+  if (params) { opts.headers['Content-Type'] = 'application/x-www-form-urlencoded'; opts.body = form(params).replace(/%7BCHECKOUT_SESSION_ID%7D/g, '{CHECKOUT_SESSION_ID}'); }
+  var r = await fetch('https://api.stripe.com/v1/' + path, opts);
+  var j = await r.json();
+  return { ok: r.ok, status: r.status, data: j };
+}
+function verifyStripeSig(raw, header, secret) {
+  if (!header || !secret) return false;
+  var t = null, v1 = null;
+  header.split(',').forEach(function (kv) { var p = kv.split('='); if (p[0] === 't') t = p[1]; if (p[0] === 'v1') v1 = p[1]; });
+  if (!t || !v1) return false;
+  var expected = crypto.createHmac('sha256', secret).update(t + '.' + raw).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1)); } catch (e) { return false; }
 }
 function json(res, code, obj) {
   res.statusCode = code;
@@ -126,8 +190,11 @@ function checkAdmin(pw) { return pw === (process.env.EAT_ADMIN_PASSWORD || ADMIN
 module.exports = {
   STATE_KEY: STATE_KEY, PHOTO_KEY: PHOTO_KEY,
   seed: seed, slug: slug, defaultPassword: defaultPassword,
+  hashPw: hashPw, verifyPw: verifyPw, isDefaultPw: isDefaultPw,
+  signToken: signToken, verifyToken: verifyToken,
   persistent: persistent, hasKV: hasKV,
   kvGet: kvGet, kvSet: kvSet,
   getState: getState, saveState: saveState, findR: findR, publicView: publicView,
-  readBody: readBody, json: json, checkAdmin: checkAdmin
+  readBody: readBody, rawBody: rawBody, json: json, checkAdmin: checkAdmin,
+  stripe: stripe, stripeConfigured: stripeConfigured, verifyStripeSig: verifyStripeSig
 };
