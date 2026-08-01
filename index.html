@@ -229,10 +229,17 @@
 
   /* ---------- horizontal Rolodex ---------- */
   var track, stage, dragging=false, startX=0, startY=0, baseX=0, curX=0, axis=null, stageW=0, slideW=0, movedAbs=0;
-  function measure(){ stageW=stage.clientWidth; var s=track.querySelector('.slide'); slideW = s ? s.getBoundingClientRect().width : stageW; if(!slideW) slideW=stageW; }
-  function centerBase(i){ return stageW/2 - slideW/2 - i*slideW; }
-  function clampT(t){ var min=centerBase(restaurants.length-1), max=centerBase(0); if(t>max) return max+(t-max)*0.32; if(t<min) return min+(t-min)*0.32; return t; }
-  // Scale + dim neighbours by their distance from centre — the Rolodex look.
+  var vx=0, lastMoveX=0, lastMoveT=0, dragTick=0, raf=0;
+  // offsetWidth is the LAYOUT width (ignores the scale transform) so centring stays exact.
+  // Exact fractional slide width (must match the .slide flex-basis below) so centring
+  // stays pixel-perfect across all cards — integer offsetWidth would drift as index grows.
+  var SLIDE_PCT=0.86;
+  function measure(){ stageW=track.clientWidth||stage.clientWidth; slideW = stageW*SLIDE_PCT || stageW; }
+  function center0(){ return stageW/2 - slideW/2; }
+  function centerBase(i){ return center0() - i*slideW; }
+  function idxAt(X){ return (center0()-X)/slideW; }
+  function clampT(t){ var min=centerBase(restaurants.length-1), max=centerBase(0); if(t>max) return max+(t-max)*0.3; if(t<min) return min+(t-min)*0.3; return t; }
+  // Scale + dim neighbours by distance from centre — the Rolodex look.
   function updateVisual(T){
     var s=track.children;
     for(var i=0;i<s.length;i++){
@@ -244,21 +251,37 @@
     }
   }
   function apply(T){ curX=T; track.style.transform='translate3d('+T+'px,0,0)'; updateVisual(T); }
+  function tick(){ vibrate(18); }          // haptic "click" as a card passes centre
   function layout(instant){
     measure();
     if(instant) track.classList.add('noanim');
     apply(centerBase(index));
     if(instant){ void track.offsetWidth; track.classList.remove('noanim'); }
   }
-  function snap(to){
-    index=Math.max(0,Math.min(restaurants.length-1,to));
-    track.classList.remove('noanim');
-    apply(centerBase(index));
-    renderDots();
+  // Animate to a card with our own rAF so we can fire a click as each one passes.
+  function animateTo(to){
+    to=Math.max(0,Math.min(restaurants.length-1,to));
+    if(raf){ cancelAnimationFrame(raf); raf=0; }
+    var sx=curX, tx=centerBase(to), dist=Math.abs(to-index);
+    if(dist===0 && Math.abs(sx-tx)<0.5){ apply(tx); return; }
+    var dur=Math.min(760, 240+95*dist), t0=performance.now(), lastCross=Math.round(idxAt(sx));
+    track.classList.add('noanim');
+    function frame(now){
+      var p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3), x=sx+(tx-sx)*e;
+      apply(x);
+      var ci=Math.round(idxAt(x));
+      if(ci!==lastCross){ lastCross=ci; tick(); }
+      if(p<1){ raf=requestAnimationFrame(frame); }
+      else { index=to; apply(tx); track.classList.remove('noanim'); renderDots(); raf=0; }
+    }
+    raf=requestAnimationFrame(frame);
   }
+  function snap(to){ animateTo(to); }
   function onDown(e){
     if(document.querySelector('.ovl')) return;
+    if(raf){ cancelAnimationFrame(raf); raf=0; }
     measure(); dragging=true; axis=null; startX=e.clientX; startY=e.clientY; baseX=curX; movedAbs=0;
+    vx=0; lastMoveX=e.clientX; lastMoveT=performance.now(); dragTick=Math.round(idxAt(curX));
     track.classList.add('noanim');
   }
   function onMove(e){
@@ -267,23 +290,26 @@
     if(axis==null){ if(Math.abs(dx)>4||Math.abs(dy)>4) axis = Math.abs(dx)>=Math.abs(dy)?'x':'y'; else return; }
     if(axis==='y') return;                 // vertical gestures do nothing
     movedAbs=Math.max(movedAbs,Math.abs(dx));
-    apply(clampT(baseX+dx));
+    var now=performance.now(), dt=now-lastMoveT;
+    if(dt>0){ vx=0.75*vx + 0.25*(e.clientX-lastMoveX)/dt; lastMoveX=e.clientX; lastMoveT=now; }
+    var T=clampT(baseX+dx); apply(T);
+    var ci=Math.round(idxAt(T));
+    if(ci!==dragTick){ dragTick=ci; tick(); }   // click each card as you drag past it
   }
   function onUp(e){
     if(!dragging) return; dragging=false;
-    track.classList.remove('noanim');
-    if(axis==='y'){ snap(index); return; }
+    if(axis==='y'){ animateTo(index); return; }
     var target;
-    if(movedAbs<8){
-      // a tap (not a drag): tap a side card to bring it to centre
+    if(movedAbs<8){                        // a tap: tap a side card to centre it
       var rx=(e.clientX!=null?e.clientX:startX)-stage.getBoundingClientRect().left;
-      if(rx < stageW*0.4) target=index-1; else if(rx > stageW*0.6) target=index+1; else target=index;
+      if(rx < stageW*0.4) target=index-1; else if(rx > stageW*0.6) target=index+1; else { animateTo(index); return; }
     } else {
-      target=Math.round((stageW/2 - slideW/2 - curX)/slideW);
+      // momentum: project position by fling velocity so one fast swipe crosses several cards
+      var projected=curX + vx*170;
+      target=Math.round(idxAt(projected));
+      if(Math.abs(target-index)>8) target=index+(target>index?8:-8);
     }
-    target=Math.max(0,Math.min(restaurants.length-1,target));
-    if(target!==index) vibrate(12);        // click vibration on each turn
-    snap(target);
+    animateTo(target);
   }
 
   /* ---------- rating overlay ---------- */
@@ -413,12 +439,12 @@
     window.addEventListener('pointermove',onMove,{passive:true});
     window.addEventListener('pointerup',onUp);
     window.addEventListener('pointercancel',onUp);
-    $('#prev').onclick=function(){ if(index>0){ vibrate(12); snap(index-1);} };
-    $('#next').onclick=function(){ if(index<restaurants.length-1){ vibrate(12); snap(index+1);} };
+    $('#prev').onclick=function(){ if(index>0) animateTo(index-1); };
+    $('#next').onclick=function(){ if(index<restaurants.length-1) animateTo(index+1); };
     document.addEventListener('keydown',function(e){
       if($('#login').classList.contains('show')||$('#dash').classList.contains('show')||document.querySelector('.ovl')) return;
-      if(e.key==='ArrowLeft'&&index>0){ vibrate(10); snap(index-1); }
-      if(e.key==='ArrowRight'&&index<restaurants.length-1){ vibrate(10); snap(index+1); }
+      if(e.key==='ArrowLeft'&&index>0) animateTo(index-1);
+      if(e.key==='ArrowRight'&&index<restaurants.length-1) animateTo(index+1);
     });
     window.addEventListener('resize',function(){ layout(true); });
     window.addEventListener('orientationchange',function(){ setTimeout(function(){layout(true);},250); });
