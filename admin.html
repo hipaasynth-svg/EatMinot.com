@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EatMinot — Admin</title>
+<style>
+  :root{--bg:#EDE7DD;--ink:#1C1917;--muted:#8A8478;--card:#fff;--cream:#F8F5EF;--accent:#D5572B;--line:rgba(28,25,23,.08)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:18px 16px 60px}
+  .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .brand{font-size:20px;font-weight:800}.brand span{color:var(--accent)}
+  a.home{font-size:13px;font-weight:700;color:var(--muted)}
+  .banner{background:#FFF4E9;border:1px solid #F3D6B8;color:#8a5a2b;border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;line-height:1.45;margin:8px 0 16px}
+  .gate{max-width:360px;margin:60px auto;display:flex;flex-direction:column;gap:12px;text-align:center}
+  input,button,select{font-family:inherit}
+  input[type=text],input[type=password],input[type=number],input[type=time]{border:1px solid rgba(28,25,23,.16);border-radius:9px;padding:11px 12px;font-size:15px;background:#fff;width:100%}
+  .btn{border:none;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:800;cursor:pointer}
+  .btn.accent{background:var(--accent);color:#fff}.btn.dark{background:var(--ink);color:#fff}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .tools input{flex:1;min-width:180px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start}
+  .thumb{width:112px;flex:none;aspect-ratio:16/10;border-radius:10px;background:#E4DCCC center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#B7AE9E;font-size:11px;font-weight:700;text-align:center}
+  .info{flex:1;min-width:0}
+  .rn{font-weight:800;font-size:15px}
+  .ad{font-size:12px;color:var(--muted);margin-top:2px}
+  .pw{font-size:12px;margin-top:6px;color:var(--ink)}
+  .pw code{background:var(--cream);padding:2px 6px;border-radius:6px;font-weight:700}
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;align-items:center}
+  .chip{font-size:11px;font-weight:800;border-radius:20px;padding:5px 10px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip.paid.on{background:var(--accent);border-color:var(--accent)}
+  label.file{font-size:12px;font-weight:800;color:var(--accent);cursor:pointer}
+  label.file input{display:none}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:700;padding:11px 16px;border-radius:22px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><div class="brand">Eat<span>Minot</span> · Admin</div><a class="home" href="./index.html">← Public site</a></div>
+
+  <div id="gate" class="gate">
+    <div style="font-weight:800;font-size:16px">Admin sign-in</div>
+    <input type="password" id="adminPw" placeholder="Admin password">
+    <button class="btn accent" id="adminGo">Enter</button>
+    <div id="gateErr" style="color:#B3341E;font-size:13px;font-weight:700;display:none">Wrong password.</div>
+    <div style="font-size:12px;color:var(--muted)">Default admin password: <b>minot-admin</b> (change it below after signing in).</div>
+  </div>
+
+  <div id="panel" style="display:none">
+    <div class="banner">Upload a photo for any restaurant here — it appears on the public card immediately (on this device). Toggle <b>Claimed</b> / <b>Paid</b> per restaurant. Owner passwords are listed so you can hand them out. Data is stored in this browser until we add a shared database.</div>
+    <div class="tools">
+      <input type="text" id="search" placeholder="Search restaurants…">
+      <button class="btn ghost" id="changeAdminPw">Change admin password</button>
+      <button class="btn ghost" id="resetAll">Reset demo data</button>
+    </div>
+    <div id="list"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="./store.js"></script>
+<script>
+(function(){
+  'use strict';
+  var S=window.EatStore;
+  var $=function(s){return document.querySelector(s);};
+  var authed=false;
+  function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show');},1700);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+  function render(){
+    var q=($('#search').value||'').toLowerCase();
+    var rs=S.load().restaurants.filter(function(r){return r.name.toLowerCase().indexOf(q)>-1;});
+    $('#list').innerHTML=rs.map(function(r){
+      var thumb=r.photo?'style="background-image:url('+esc(r.photo)+')"':'';
+      var ph=r.photo?'':'No photo';
+      return '<div class="item" data-id="'+r.id+'">'+
+        '<div class="thumb" '+thumb+'>'+ph+'</div>'+
+        '<div class="info">'+
+          '<div class="rn">'+esc(r.name)+'</div>'+
+          '<div class="ad">'+esc(r.address)+'</div>'+
+          '<div class="pw">Owner password: <code>'+esc(r.password)+'</code></div>'+
+          '<div class="ctl">'+
+            '<label class="file">Upload photo<input type="file" accept="image/*" data-photo="'+r.id+'"></label>'+
+            (r.photo?'<span class="chip" data-rmphoto="'+r.id+'">Remove photo</span>':'')+
+            '<span class="chip'+(r.claimed?' on':'')+'" data-claim="'+r.id+'">'+(r.claimed?'Claimed ✓':'Unclaimed')+'</span>'+
+            '<span class="chip paid'+(r.paid?' on':'')+'" data-paid="'+r.id+'">'+(r.paid?'Paid ✓':'Free')+'</span>'+
+          '</div>'+
+        '</div></div>';
+    }).join('');
+    wire();
+  }
+  function wire(){
+    document.querySelectorAll('[data-photo]').forEach(function(el){
+      el.onchange=function(e){
+        var id=parseInt(el.getAttribute('data-photo'),10);
+        var f=e.target.files[0]; if(!f) return;
+        S.fileToDataUrl(f).then(function(url){
+          var res=S.update(id,function(r){r.photo=url;});
+          toast(res.ok?'Photo uploaded':'Too large — try smaller'); render();
+        }).catch(function(){toast('Could not read image');});
+      };
+    });
+    document.querySelectorAll('[data-rmphoto]').forEach(function(el){
+      el.onclick=function(){var id=parseInt(el.getAttribute('data-rmphoto'),10);S.update(id,function(r){r.photo=null;});toast('Photo removed');render();};
+    });
+    document.querySelectorAll('[data-claim]').forEach(function(el){
+      el.onclick=function(){var id=parseInt(el.getAttribute('data-claim'),10);S.update(id,function(r){r.claimed=!r.claimed; if(!r.claimed) r.paid=false;});render();};
+    });
+    document.querySelectorAll('[data-paid]').forEach(function(el){
+      el.onclick=function(){var id=parseInt(el.getAttribute('data-paid'),10);S.update(id,function(r){r.paid=!r.paid; if(r.paid) r.claimed=true;});render();};
+    });
+  }
+
+  function enter(){
+    if(S.checkAdmin($('#adminPw').value)){
+      authed=true; $('#gate').style.display='none'; $('#panel').style.display='block'; render();
+    } else { $('#gateErr').style.display='block'; }
+  }
+
+  $('#adminGo').onclick=enter;
+  $('#adminPw').addEventListener('keydown',function(e){if(e.key==='Enter')enter();});
+  $('#search').addEventListener('input',render);
+  $('#changeAdminPw').onclick=function(){
+    var np=prompt('New admin password:'); if(np&&np.trim()){ S.setAdminPassword(np.trim()); toast('Admin password changed'); }
+  };
+  $('#resetAll').onclick=function(){
+    if(confirm('Reset all restaurants, photos, ratings and owner edits to defaults?')){ S.resetAll(); toast('Demo data reset'); render(); }
+  };
+})();
+</script>
+</body>
+</html>
