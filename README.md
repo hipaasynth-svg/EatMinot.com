@@ -73,10 +73,53 @@ Photos are stored under separate Redis keys and downscaled client-side to keep t
 - `POST /api/admin` `{password, action, …}` → photos, Claimed/Paid flags, list, reset
 - `GET  /api/photo?id=` → a restaurant's photo
 
-### Still placeholder (phase 2)
-- **Client-side password checks / plaintext passwords** — good enough to gate owners, not
-  bank-grade. A real auth provider is the next step.
-- **The $59 upgrade button** — real Stripe billing is not yet wired; the admin console
-  toggles Paid manually for now.
+## Owner auth (server-side)
+
+In shared mode, owner passwords are **salted-SHA-256 hashed** in the database (no plaintext
+at rest). Logging in returns a **signed HMAC session token** (12h), which is what subsequent
+owner edits/photo uploads send — the password isn't re-transmitted on every action. Set
+`EAT_SESSION_SECRET` in Vercel to a long random string so tokens can't be forged.
+
+The admin console never shows password hashes: it shows each owner's **default** password
+(name + `26`) and flags any that an owner has changed, with a one-click **Reset to default**.
+
+## Billing — $59/mo Claimed tier (Stripe)
+
+The "Upgrade — $59/mo" button opens **Stripe Checkout** (subscription). On return, the app
+confirms the session and flips the listing to **Paid** (unlocking photo changes + the
+Restaurant's Choice billboard). A webhook keeps status in sync on cancellation.
+
+Implemented with Stripe's REST API directly (no SDK): `api/checkout.js`,
+`api/upgrade-confirm.js`, `api/stripe-webhook.js`.
+
+### Setup in Vercel
+1. Add environment variables:
+   - `STRIPE_SECRET_KEY` — from your Stripe dashboard (test or live).
+   - `STRIPE_WEBHOOK_SECRET` — from the webhook you create in step 2 (optional but
+     recommended; without it, upgrades still work via return-confirmation, but automatic
+     downgrade-on-cancel won't).
+   - `STRIPE_PRICE_ID` — *optional*. If unset, checkout creates the $59/mo line inline; set
+     it to a fixed Price ID if you'd rather manage the product in Stripe.
+2. In Stripe → Developers → **Webhooks**, add an endpoint `https://eatminot.com/api/stripe-webhook`
+   for events `checkout.session.completed`, `customer.subscription.deleted`,
+   `customer.subscription.updated`. Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+3. Redeploy. Until `STRIPE_SECRET_KEY` is set, the upgrade button reports "billing not set
+   up" and you can still grant Paid manually from the admin console.
+
+## Environment variables (all optional; features light up when present)
+
+| Var | Enables |
+|-----|---------|
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Shared database (auto-added by Vercel's Upstash Redis) |
+| `EAT_SESSION_SECRET` | Unforgeable owner session tokens |
+| `EAT_ADMIN_PASSWORD` | Overrides the `minot-admin` admin default |
+| `STRIPE_SECRET_KEY` | Live $59/mo Stripe checkout |
+| `STRIPE_WEBHOOK_SECRET` | Auto status sync (cancellations) |
+| `STRIPE_PRICE_ID` | Use a fixed Stripe Price instead of the inline $59/mo |
+
+### Remaining for later
+- **Owner accounts by email** (magic-link / OAuth) would replace the per-restaurant password
+  entirely — a further step needing an email or auth provider.
+- **Domain**: add `eatminot.com` in the project's Domains tab and point DNS to Vercel.
 
 `Minot Eats.dc.html` is the earlier design-tool prototype, kept for reference.

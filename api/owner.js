@@ -1,7 +1,9 @@
 'use strict';
 var L = require('./_lib');
 
-// POST /api/owner { action:'login'|'update', id, password, fields? }
+// POST /api/owner { action:'login'|'update'|'photo', id, password?, token?, fields?, dataUrl? }
+// Auth: 'login' checks the password and returns a signed session token.
+//       'update'/'photo' accept that token (preferred) or the password.
 module.exports = async function (req, res) {
   if (req.method !== 'POST') { L.json(res, 405, { error: 'method' }); return; }
   try {
@@ -9,9 +11,15 @@ module.exports = async function (req, res) {
     var s = await L.getState();
     var r = L.findR(s, b.id);
     if (!r) { L.json(res, 404, { error: 'not_found' }); return; }
-    if (b.password !== r.password) { L.json(res, 401, { error: 'bad_password' }); return; }
 
-    if (b.action === 'login') { L.json(res, 200, { ok: true, id: r.id, name: r.name, paid: r.paid }); return; }
+    if (b.action === 'login') {
+      if (!L.verifyPw(b.password, r.password)) { L.json(res, 401, { error: 'bad_password' }); return; }
+      L.json(res, 200, { ok: true, id: r.id, name: r.name, paid: r.paid, token: L.signToken(r.id) });
+      return;
+    }
+
+    var authed = (b.token && L.verifyToken(b.token) === r.id) || L.verifyPw(b.password, r.password);
+    if (!authed) { L.json(res, 401, { error: 'unauthorized' }); return; }
 
     if (b.action === 'photo') {
       if (!r.paid) { L.json(res, 403, { error: 'not_paid' }); return; }
@@ -40,7 +48,7 @@ module.exports = async function (req, res) {
           special: String(hh.special || '').slice(0, 60)
         };
       }
-      if (typeof f.password === 'string' && f.password.trim()) r.password = f.password.trim();
+      if (typeof f.password === 'string' && f.password.trim()) r.password = L.hashPw(f.password.trim());
       await L.saveState(s);
       L.json(res, 200, { ok: true });
       return;

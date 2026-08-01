@@ -72,10 +72,15 @@
     var q=($('#search').value||'').toLowerCase();
     var rs=all.filter(function(r){return r.name.toLowerCase().indexOf(q)>-1;});
     $('#list').innerHTML=rs.map(function(r){
+      var def = r.defaultPassword || S.defaultPassword(r.name);
+      var changed = (r.passwordChanged!==undefined) ? r.passwordChanged : (r.password!==undefined && r.password!==def);
+      var pwLine = changed
+        ? 'Owner password: <b>changed by owner</b> · <span class="chip" data-rmpw="'+r.id+'">Reset to default</span>'
+        : 'Owner password: <code>'+esc(def)+'</code>';
       return '<div class="item" data-id="'+r.id+'">'+
         '<div class="thumb" data-thumb="'+r.id+'">'+(r.hasPhoto?'':'No photo')+'</div>'+
         '<div class="info"><div class="rn">'+esc(r.name)+'</div><div class="ad">'+esc(r.address)+'</div>'+
-          '<div class="pw">Owner password: <code>'+esc(r.password)+'</code></div>'+
+          '<div class="pw">'+pwLine+'</div>'+
           '<div class="ctl">'+
             '<label class="file">Upload photo<input type="file" accept="image/*" data-photo="'+r.id+'"></label>'+
             (r.hasPhoto?'<span class="chip" data-rmphoto="'+r.id+'">Remove photo</span>':'')+
@@ -93,6 +98,7 @@
     document.querySelectorAll('[data-rmphoto]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-rmphoto'); S.adminRemovePhoto(adminPw,id).then(function(){ toast('Photo removed'); reloadList(); }); }; });
     document.querySelectorAll('[data-claim]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-claim'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{claimed:!r.claimed}).then(function(){ reloadList(); }); }; });
     document.querySelectorAll('[data-paid]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-paid'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{paid:!r.paid}).then(function(){ reloadList(); }); }; });
+    document.querySelectorAll('[data-rmpw]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-rmpw'); S.adminResetPassword(adminPw,id).then(function(res){ toast(res.ok?'Password reset to default':'Reset failed'); reloadList(); }); }; });
   }
 
   function enter(){

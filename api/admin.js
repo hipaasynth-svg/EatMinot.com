@@ -13,7 +13,15 @@ module.exports = async function (req, res) {
     var s = await L.getState();
 
     if (b.action === 'list') {
-      L.json(res, 200, { ok: true, restaurants: s.restaurants });
+      // Never expose password hashes; show the default and whether it was changed.
+      var out = s.restaurants.map(function (r) {
+        var o = {}; for (var k in r) o[k] = r[k];
+        delete o.password;
+        o.defaultPassword = L.defaultPassword(r.name);
+        o.passwordChanged = !L.isDefaultPw(r.name, r.password);
+        return o;
+      });
+      L.json(res, 200, { ok: true, restaurants: out });
       return;
     }
     if (b.action === 'reset') {
@@ -50,9 +58,10 @@ module.exports = async function (req, res) {
       L.json(res, 200, { ok: true });
       return;
     }
-    if (b.action === 'setPassword') {
-      if (b.password2 && String(b.password2).trim()) { r.password = String(b.password2).trim(); await L.saveState(s); L.json(res, 200, { ok: true }); return; }
-      L.json(res, 400, { error: 'password2' });
+    if (b.action === 'resetPassword') {
+      r.password = L.hashPw(L.defaultPassword(r.name));
+      await L.saveState(s);
+      L.json(res, 200, { ok: true, defaultPassword: L.defaultPassword(r.name) });
       return;
     }
     L.json(res, 400, { error: 'action' });

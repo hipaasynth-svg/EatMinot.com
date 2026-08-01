@@ -356,7 +356,7 @@
       '<div class="note">'+(S.isServer()
         ? 'Changes save to the shared database and appear for every customer.'
         : 'Changes save on <b>this browser only</b> until you attach storage in Vercel (see README) — then it syncs to all devices.')+
-        ' The <b>$59 upgrade</b> is a placeholder until Stripe billing is connected.</div>'+
+        ' Upgrading opens secure <b>Stripe</b> checkout for the $59/mo tier.</div>'+
       photoBlock+
       sec('Restaurant\'s Choice billboard'+(paid?'':' (paid)'), (paid?'':'<div class="lbl" style="text-transform:none;margin-bottom:6px">Upgrade to publish these on your card.</div>')+pick(0,r)+pick(1,r)+pick(2,r))+
       sec('Happy hour', happyBlock(r))+
@@ -369,7 +369,15 @@
     if(r.hasPhoto){ S.getPhoto(r.id).then(function(u){ if(u){ var p=$('#ownerPhotoPrev'); if(p){ p.style.backgroundImage='url('+u+')'; p.textContent=''; } } }); }
     if(paid && $('#ownerPhoto')) $('#ownerPhoto').onchange=function(e){ var f=e.target.files[0]; if(!f) return;
       S.fileToDataUrl(f).then(function(url){ return S.ownerPhoto(r.id, ownerPw, url); }).then(function(res){ if(res&&res.ok){ toast('Photo updated'); openDash(r.id); } else { toast('Photo failed'); } }).catch(function(){ toast('Could not read image'); }); };
-    if($('#ownerUpgrade')) $('#ownerUpgrade').onclick=function(){ toast('Upgrade is a placeholder (Stripe next). Ask admin to enable Paid.'); };
+    if($('#ownerUpgrade')) $('#ownerUpgrade').onclick=function(){
+      toast('Opening secure checkout…');
+      S.checkout(r.id, ownerPw).then(function(res){
+        if(res && res.url){ window.location.href=res.url; }
+        else if(res && res.error==='not_configured'){ toast('Billing not set up yet — add Stripe keys in Vercel'); }
+        else if(res && res.error==='local'){ toast('Attach the database + Stripe to enable live checkout'); }
+        else { toast('Could not start checkout'); }
+      });
+    };
     bindDays();
     $('#ownerSave').onclick=function(){ saveOwner(r.id); };
     $('#ownerLogout').onclick=function(){ ownerPw=''; goHome(); };
@@ -421,7 +429,21 @@
     document.querySelectorAll('[data-home]').forEach(function(b){ b.onclick=goHome; });
     setInterval(function(){ if($('#login').classList.contains('show')||$('#dash').classList.contains('show')) return; renderTrack(); }, 60000);
 
-    S.init().then(function(r){ restaurants=r.restaurants; renderTrack(); });
+    S.init().then(function(r){ restaurants=r.restaurants; renderTrack(); handleReturn(); });
+  }
+  // After returning from Stripe Checkout, confirm and flip the listing to Paid.
+  function handleReturn(){
+    var q; try{ q=new URLSearchParams(location.search); }catch(e){ return; }
+    var sid=q.get('session_id');
+    if(sid){
+      S.confirmUpgrade(sid).then(function(res){
+        if(res && res.paid) toast('Upgraded to Paid — photo & billboard unlocked!');
+        history.replaceState({}, '', location.pathname);
+        restaurants=S.list(); renderTrack();
+      });
+    } else if(q.get('upgrade')==='cancelled'){
+      history.replaceState({}, '', location.pathname);
+    }
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();

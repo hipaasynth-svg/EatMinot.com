@@ -202,12 +202,13 @@
   }
 
   /* ---------- owner ---------- */
+  var ownerTok = {}; // id -> session token
   function ownerLogin(id, pw) {
-    if (mode === 'server') return api('owner', 'POST', { action: 'login', id: id, password: pw }).then(function (res) { return res.ok ? { ok: true, data: res.data } : { ok: false }; });
+    if (mode === 'server') return api('owner', 'POST', { action: 'login', id: id, password: pw }).then(function (res) { if (res.ok && res.data.token) ownerTok[id] = res.data.token; return res.ok ? { ok: true, data: res.data } : { ok: false }; });
     var lr = localFind(loadLocal(), id); return Promise.resolve(lr && pw === lr.password ? { ok: true, data: { id: lr.id, name: lr.name, paid: lr.paid } } : { ok: false });
   }
   function ownerUpdate(id, pw, fields) {
-    if (mode === 'server') return api('owner', 'POST', { action: 'update', id: id, password: pw, fields: fields }).then(function (res) { return { ok: res.ok }; }).then(function (r) { return refresh().then(function () { return r; }); });
+    if (mode === 'server') return api('owner', 'POST', { action: 'update', id: id, token: ownerTok[id], password: pw, fields: fields }).then(function (res) { return { ok: res.ok }; }).then(function (r) { return refresh().then(function () { return r; }); });
     var d = loadLocal(), lr = localFind(d, id);
     if (!lr || pw !== lr.password) return Promise.resolve({ ok: false });
     if (Array.isArray(fields.picks)) lr.picks = fields.picks.slice(0, 3);
@@ -223,12 +224,22 @@
 
   function ownerPhoto(id, pw, dataUrl) {
     clearPhoto(id);
-    if (mode === 'server') return api('owner', 'POST', { action: 'photo', id: id, password: pw, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (mode === 'server') return api('owner', 'POST', { action: 'photo', id: id, token: ownerTok[id], password: pw, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     var d = loadLocal(), lr = localFind(d, id);
     if (!lr || pw !== lr.password) return Promise.resolve({ ok: false });
     if (!lr.paid) return Promise.resolve({ ok: false });
     lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = d.restaurants.map(withRating);
     return Promise.resolve({ ok: ok });
+  }
+
+  /* ---------- billing (Stripe) ---------- */
+  function checkout(id, pw) {
+    if (mode !== 'server') return Promise.resolve({ error: 'local' });
+    return api('checkout', 'POST', { id: id, token: ownerTok[id], password: pw }).then(function (res) { return res.data || { error: 'error' }; });
+  }
+  function confirmUpgrade(sessionId) {
+    if (mode !== 'server') return Promise.resolve({ ok: false });
+    return api('upgrade-confirm', 'POST', { sessionId: sessionId }).then(function (res) { return refresh().then(function () { return res.data || { ok: false }; }); });
   }
 
   /* ---------- admin ---------- */
@@ -261,6 +272,12 @@
     if (typeof flags.paid === 'boolean') { lr.paid = flags.paid; if (lr.paid) lr.claimed = true; }
     saveLocal(d); cache = d.restaurants.map(withRating); return Promise.resolve({ ok: true });
   }
+  function adminResetPassword(pw, id) {
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'resetPassword', id: id }).then(function (res) { return { ok: res.ok, defaultPassword: res.data && res.data.defaultPassword }; });
+    var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
+    lr.password = defaultPassword(lr.name); saveLocal(d);
+    return Promise.resolve({ ok: true, defaultPassword: lr.password });
+  }
   function adminReset(pw) {
     photoCache = {};
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'reset' }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
@@ -275,7 +292,8 @@
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,
     rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec,
     ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto,
-    adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto, adminSetFlag: adminSetFlag, adminReset: adminReset, setAdminPasswordLocal: setAdminPasswordLocal,
+    checkout: checkout, confirmUpgrade: confirmUpgrade,
+    adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto, adminSetFlag: adminSetFlag, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
     slug: slug, defaultPassword: defaultPassword, fmtNum: fmtNum, isHappyHourNow: isHappyHourNow, to12h: to12h, fileToDataUrl: fileToDataUrl
   };
 })(window);
