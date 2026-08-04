@@ -143,8 +143,7 @@
   </div>
   <div class="foot">
     <div class="dots" id="dots"></div>
-    <button class="btn dark" id="rateBtn">Tap to rate</button>
-    <div class="hint">Ratings unlock via an in-store NFC tap or QR scan</div>
+    <div class="hint">Find our NFC tag or QR code in-store to rate — tap it, then swipe up</div>
   </div>
 
   <!-- NFC / QR TAG LANDING -->
@@ -250,8 +249,6 @@
   function renderDots(){
     var d=''; for(var i=0;i<restaurants.length;i++){ d+='<div class="dot'+(i===index?' on':'')+'"></div>'; }
     $('#dots').innerHTML=d;
-    var r=cur(); var disabled = r ? S.ratedRecently(r.id) : true;
-    var b=$('#rateBtn'); b.disabled=disabled; b.textContent = disabled?'Rated — 24h limit':'Tap to rate';
   }
 
   /* ---------- horizontal Rolodex ---------- */
@@ -526,7 +523,6 @@
     });
     window.addEventListener('resize',function(){ layout(true); });
     window.addEventListener('orientationchange',function(){ setTimeout(function(){layout(true);},250); });
-    $('#rateBtn').onclick=openOverlay;
     $('#ownerLink').onclick=openLogin;
     $('#loginBtn').onclick=doLogin;
     $('#loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
