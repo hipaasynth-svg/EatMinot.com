@@ -19,8 +19,13 @@ per restaurant every 24 hours. No accounts, no email/text collection, no persona
 Open `index.html` for the customer experience; `admin.html` for the operator console.
 
 ### What works today
-- **Swipeable Rolodex** of 30 seeded Minot restaurants — smooth momentum drag with a
-  click-vibration on each turn (arrow keys / edge buttons on desktop).
+- **NFC/QR tag landing** — a tag's URL (`/?r=<id>`, shown per-restaurant in the admin
+  console with a copy button) opens straight to that restaurant's page: no carousel, no
+  other cards. A bouncing **"Swipe up to rate"** prompt opens the rating overlay; once
+  rated it's replaced by a "✓ Rated" confirmation. "Browse all →" leaves for the normal app.
+- **Swipeable Rolodex** of 36 seeded Minot restaurants — smooth momentum drag with a
+  click-vibration on each turn (arrow keys / edge buttons on desktop). General browsing
+  still has its own "Tap to rate" button, independent of the tag flow above.
 - **Two-tap rating** — thumbs-up then a star (left = lower, right = higher). Because
   there is **no thumbs-down**, a "Submit stars only — no upvote" option lets people
   rate quality after a bad experience without upvoting. Brief "PUNCHED" starburst on
@@ -30,17 +35,19 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
 - **Neon "Happy Hour Now"** indicator that switches on/off by the clock from the
   owner's schedule (day + start/end + special).
 - **Owner dashboard** (password-gated) — Restaurant's Choice billboard (top 3 picks),
-  happy-hour selector, punch-card reward, note, website, password change.
+  happy-hour selector, punch-card reward, note, website, password change. A "forgot
+  password" line points owners to `cody@eatminot.com`.
 - **Paid gate** — changing the photo and publishing the billboard require the $59/mo
   tier; free claimed owners can edit the rest.
 - **Admin console** — upload a photo for any restaurant, toggle Claimed/Paid, view/hand
-  out owner passwords, reset demo data.
+  out owner passwords (or reset one to default), copy each restaurant's tag URL, reset
+  demo data. No admin action writes to a vote counter — those only move via a real rating.
 
 ### Default credentials
 - **Owner login:** pick your restaurant, password = its name (letters only) + `26`
   (e.g. `thestarvingrooster26`). Changeable in the dashboard; each password is listed
-  in the admin console.
-- **Admin:** `minot-admin` (changeable inside the admin console).
+  in the admin console. Owners who lose it can email `cody@eatminot.com`.
+- **Admin:** `minot-admin` (changeable inside the admin console / `EAT_ADMIN_PASSWORD`).
 
 ## Shared database (turn on cross-device sync)
 
@@ -53,8 +60,16 @@ The app runs in two modes automatically:
   the same ratings, photos, and owner content.
 
 The backend is plain Vercel serverless functions in `api/` (no npm dependencies). They
-talk to an Upstash Redis store using the standard `KV_REST_API_URL` / `KV_REST_API_TOKEN`
-environment variables that Vercel injects when you attach the store.
+talk to an Upstash Redis store using either `UPSTASH_REDIS_REST_URL`/`_TOKEN` (Vercel's
+Marketplace "Upstash for Redis" integration) or the legacy `KV_REST_API_URL`/`_TOKEN` —
+whichever Vercel injects when you attach the store.
+
+**Storage is per-restaurant, not one shared blob.** Each restaurant has its own profile
+key (`eatminot:r:<id>`) and its own vote-counter hash (`eatminot:v:<id>`). Votes move only
+via Redis `HINCRBY` — an atomic, race-free increment — so many simultaneous ratings for
+the same restaurant can't lose an update the way a read-modify-write on shared state could.
+`GET /api/state` fetches every restaurant in a single round trip via Upstash's pipeline
+endpoint, so this costs nothing extra on page load.
 
 ### One-time setup in Vercel (~2 min)
 1. Open your project → **Storage → Create Database → Upstash for Redis** (Marketplace) →
@@ -78,7 +93,9 @@ Photos are stored under separate Redis keys and downscaled client-side to keep t
 In shared mode, owner passwords are **salted-SHA-256 hashed** in the database (no plaintext
 at rest). Logging in returns a **signed HMAC session token** (12h), which is what subsequent
 owner edits/photo uploads send — the password isn't re-transmitted on every action. Set
-`EAT_SESSION_SECRET` in Vercel to a long random string so tokens can't be forged.
+`EAT_SESSION_SECRET` in Vercel to a long random string so tokens can't be forged. If it's
+ever left unset, the code signs with a random secret generated fresh per cold start instead
+of a fixed fallback — an unset secret just logs owners out on redeploy, never a silent hole.
 
 The admin console never shows password hashes: it shows each owner's **default** password
 (name + `26`) and flags any that an owner has changed, with a one-click **Reset to default**.

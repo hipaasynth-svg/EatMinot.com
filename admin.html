@@ -26,6 +26,8 @@
   .rn{font-weight:800;font-size:15px}
   .ad{font-size:12px;color:var(--muted);margin-top:2px}
   .pw{font-size:12px;margin-top:6px}.pw code{background:var(--cream);padding:2px 6px;border-radius:6px;font-weight:700}
+  .tag{font-size:12px;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tag code{background:var(--cream);padding:2px 6px;border-radius:6px;font-weight:700;word-break:break-all}
   .ctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;align-items:center}
   .chip{font-size:11px;font-weight:800;border-radius:20px;padding:5px 10px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -77,10 +79,12 @@
       var pwLine = changed
         ? 'Owner password: <b>changed by owner</b> · <span class="chip" data-rmpw="'+r.id+'">Reset to default</span>'
         : 'Owner password: <code>'+esc(def)+'</code>';
+      var tagUrl = location.origin + '/?r=' + r.id;
       return '<div class="item" data-id="'+r.id+'">'+
         '<div class="thumb" data-thumb="'+r.id+'">'+(r.hasPhoto?'':'No photo')+'</div>'+
         '<div class="info"><div class="rn">'+esc(r.name)+'</div><div class="ad">'+esc(r.address)+'</div>'+
           '<div class="pw">'+pwLine+'</div>'+
+          '<div class="tag">NFC/QR link: <code>'+esc(tagUrl)+'</code><span class="chip" data-copytag="'+esc(tagUrl)+'">Copy</span></div>'+
           '<div class="ctl">'+
             '<label class="file">Upload photo<input type="file" accept="image/*" data-photo="'+r.id+'"></label>'+
             (r.hasPhoto?'<span class="chip" data-rmphoto="'+r.id+'">Remove photo</span>':'')+
@@ -99,6 +103,11 @@
     document.querySelectorAll('[data-claim]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-claim'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{claimed:!r.claimed}).then(function(){ reloadList(); }); }; });
     document.querySelectorAll('[data-paid]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-paid'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{paid:!r.paid}).then(function(){ reloadList(); }); }; });
     document.querySelectorAll('[data-rmpw]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-rmpw'); S.adminResetPassword(adminPw,id).then(function(res){ toast(res.ok?'Password reset to default':'Reset failed'); reloadList(); }); }; });
+    document.querySelectorAll('[data-copytag]').forEach(function(el){ el.onclick=function(){
+      var url=el.getAttribute('data-copytag');
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ toast('Link copied'); }).catch(function(){ prompt('Copy this link:', url); }); }
+      else { prompt('Copy this link:', url); }
+    }; });
   }
 
   function enter(){

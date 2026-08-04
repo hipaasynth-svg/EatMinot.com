@@ -45,7 +45,13 @@
     ["Homesteaders Restaurant", "2501 Elk Dr, Minot, ND 58701", "Verify hours"],
     ["Off The Vine", "15 Main St S, Minot, ND 58701", "Verify hours"],
     ["Souris River Brewing", "32 3rd St NE, Minot, ND 58703", "Verify hours"],
-    ["Broadway Bean and Bagel", "Minot, ND", "Verify hours"]
+    ["Broadway Bean and Bagel", "Minot, ND", "Verify hours"],
+    ["Do Eat", "2400 10th St SW, Ste 522 (Dakota Square Mall), Minot, ND 58701", "Sun-Thu 11am-9:30pm, Fri-Sat 11am-10pm"],
+    ["Try Thai Food", "1524 S Broadway #4A, Minot, ND 58701", "Mon-Sat 11am-9pm, Closed Sun"],
+    ["Beowulf Craft Kitchen & Lounge", "1912 Valley Bluffs Drive, Minot, ND 58701 (Beowulf Golf Club)", "Mon-Thu 11am-10pm, Fri-Sat 9:30am-10pm, Sun 9:30am-8pm"],
+    ["El Arepazo", "2251 36th Ave SW, Minot, ND 58701 (inside Pinnacle Express)", "Mon-Sat 10am-7pm (some sources say 8pm), Closed Sun"],
+    ["Prairie Pit BBQ", "1809 S Broadway, Minot, ND 58701 (inside Enerbase)", "Daily 11am-8pm"],
+    ["The Bunker Bar and Grill", "Old Ground Round location, Minot, ND (exact address TBD)", "Sun-Thu 11am-10pm, Fri-Sat 11am-11pm"]
   ];
 
   function slug(n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); }
@@ -64,9 +70,12 @@
         photo: null, hasPhoto: false,
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
         picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
-        note: '', website: claimed ? 'starvingrooster.com' : '',
+        note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
+        website: claimed ? 'starvingrooster.com' : '',
         reward: 'Free item on your 10th punch', couponValidDays: 14,
-        happyHour: { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
+        happyHour: claimed
+          ? { enabled: true, days: [0, 1, 2, 3, 4, 5, 6], start: '15:00', end: '17:00', special: 'Half-price apps' }
+          : { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
       };
     });
   }

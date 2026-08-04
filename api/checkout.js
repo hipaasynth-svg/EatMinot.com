@@ -7,8 +7,7 @@ module.exports = async function (req, res) {
   try {
     if (!L.stripeConfigured()) { L.json(res, 200, { error: 'not_configured' }); return; }
     var b = await L.readBody(req);
-    var s = await L.getState();
-    var r = L.findR(s, b.id);
+    var r = await L.getProfile(b.id);
     if (!r) { L.json(res, 404, { error: 'not_found' }); return; }
     var authed = (b.token && L.verifyToken(b.token) === r.id) || L.verifyPw(b.password, r.password);
     if (!authed) { L.json(res, 401, { error: 'unauthorized' }); return; }

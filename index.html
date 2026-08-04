@@ -118,6 +118,15 @@
   .note{background:#FFF4E9;border:1px solid #F3D6B8;color:#8a5a2b;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:600;line-height:1.45}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:700;padding:11px 16px;border-radius:22px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.show{opacity:1}
+
+  /* NFC/QR tag landing screen */
+  .foot{transition:transform .18s ease}
+  .swipeup{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 0 2px}
+  .swipeup svg{animation:swipebounce 1.4s ease-in-out infinite}
+  .swipeup .swipeText{font-size:13px;font-weight:800;color:var(--ink)}
+  @keyframes swipebounce{0%,100%{transform:translateY(2px);opacity:.5}50%{transform:translateY(-8px);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.swipeup svg{animation:none}}
+  .ratedmsg{text-align:center;font-size:13px;font-weight:800;color:#2F6B3F;padding:10px 0}
 </style>
 </head>
 <body>
@@ -138,6 +147,20 @@
     <div class="hint">Ratings unlock via an in-store NFC tap or QR scan</div>
   </div>
 
+  <!-- NFC / QR TAG LANDING -->
+  <div class="screen" id="tag">
+    <div class="top">
+      <div class="brand">Eat<span>Minot</span></div>
+      <button class="ownerlink" id="tagBrowse">Browse all →</button>
+    </div>
+    <div class="stage" id="tagStage">
+      <div id="tagCardHost" style="width:100%;height:100%"></div>
+    </div>
+    <div class="foot" id="tagFootWrap">
+      <div id="tagFoot"></div>
+    </div>
+  </div>
+
   <!-- OWNER LOGIN -->
   <div class="screen" id="login">
     <div class="shead"><button class="back" data-home>←</button><b>Owner login</b></div>
@@ -147,6 +170,7 @@
       <label class="field"><span>Password</span><input type="password" id="loginPw" placeholder="name + 26" autocomplete="off"></label>
       <button class="btn accent" id="loginBtn">Log in</button>
       <div id="loginErr" style="color:#B3341E;font-size:13px;font-weight:700;display:none">Wrong password. Try your name (letters only) + 26.</div>
+      <div class="note">Need your password? Email <a href="mailto:cody@eatminot.com">cody@eatminot.com</a>.</div>
     </div>
   </div>
 
@@ -181,7 +205,9 @@
     return out;
   }
 
-  function cardHtml(r){
+  // Shared hero+body markup for a single restaurant — used by both the home carousel
+  // card and the standalone NFC/QR tag-landing view, so the two never drift apart.
+  function cardInner(r){
     var rec = S.deviceRec(r.id);
     var happy = S.isHappyHourNow(r);
     var neon = happy ? '<div class="neon"><span class="d"></span>Happy Hour</div>' : '';
@@ -195,8 +221,7 @@
     var couponActive = rec.coupon && rec.coupon.expiresAt>Date.now();
     var coupon = couponActive ? '<div class="coupon"><div><div style="font-size:12px;font-weight:800;color:#2F6B3F">'+esc(rec.coupon.reward||'Reward earned!')+'</div><div style="font-size:11px;color:#4C8A57;font-weight:700;margin-top:2px">Code '+esc(rec.coupon.code)+' · exp '+new Date(rec.coupon.expiresAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</div></div><div style="font-size:10px;font-weight:800;color:#fff;background:#3F6C51;padding:5px 9px;border-radius:20px">EARNED</div></div>' : '';
 
-    return '<div class="slide"><div class="card">'+
-      '<div class="hero" data-hero="'+r.id+'">'+
+    return '<div class="hero" data-hero="'+r.id+'">'+
         '<div class="stats"><b>'+S.fmtNum(r.upvotes)+'</b><s>upvotes</s></div>'+
         '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
       '</div>'+
@@ -207,8 +232,10 @@
           '<div style="text-align:right"><div class="lbl">Your punches</div><div class="ticks">'+ticks+'</div>'+
           '<div class="lbl" style="text-transform:none;margin-top:4px">'+rec.done+'/'+(rec.total||10)+'</div></div></div>'+
         billboard+coupon+
-      '</div></div></div>';
+      '</div>';
   }
+  function cardHtml(r){ return '<div class="slide"><div class="card">'+cardInner(r)+'</div></div>'; }
+  function tagCardHtml(r){ return '<div class="card">'+cardInner(r)+'</div>'; }
 
   function loadHeroes(){
     document.querySelectorAll('[data-hero]').forEach(function(el){
@@ -348,12 +375,58 @@
     S.rate(r.id, rating, upvote).then(function(res){
       if(!res.ok){ closeOverlay(); toast(res.reason==='rate_limited'?'Already rated today':'Could not submit'); return; }
       ov.step='confirmed'; drawOverlay();
-      setTimeout(function(){ closeOverlay(); restaurants=S.list(); renderTrack(); }, 1150);
+      setTimeout(function(){
+        closeOverlay(); restaurants=S.list(); renderTrack();
+        if($('#tag').classList.contains('show')) renderTagFoot();   // swap "swipe up" for the ✓ once rated
+      }, 1150);
     });
   }
 
+  /* ---------- NFC/QR tag landing (?r=<id>) ---------- */
+  var tagId = null;
+  function enterTagMode(id){
+    var idx = restaurants.findIndex(function(x){ return x.id===id; });
+    if(idx<0) return false;
+    tagId = id; index = idx; // reuse cur()/openOverlay()/confirmRate() unmodified
+    renderTagScreen();
+    showScreen('tag');
+    return true;
+  }
+  function renderTagScreen(){
+    var r = S.get(tagId); if(!r) return;
+    $('#tagCardHost').innerHTML = tagCardHtml(r);
+    loadHeroes();
+    renderTagFoot();
+  }
+  function renderTagFoot(){
+    var r = S.get(tagId); if(!r) return;
+    var host = $('#tagFoot');
+    if(S.ratedRecently(r.id)){
+      host.innerHTML = '<div class="ratedmsg">✓ Rated — thanks! Come back in 24h.</div>';
+      return;
+    }
+    host.innerHTML = '<div class="swipeup" id="swipeHint">'+
+      '<svg width="22" height="14" viewBox="0 0 24 14"><path d="M2 12 L12 2 L22 12" stroke="#1C1917" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>'+
+      '<div class="swipeText">Swipe up to rate</div></div>';
+    var sh=$('#swipeHint'); if(sh) sh.onclick = openOverlay;
+  }
+  // Vertical drag scoped only to the tag screen — the home carousel stays horizontal-only.
+  var tagDragging=false, tagStartY=0, tagDY=0;
+  function tagOnDown(e){ if(document.querySelector('.ovl')) return; tagDragging=true; tagStartY=e.clientY; tagDY=0; }
+  function tagOnMove(e){
+    if(!tagDragging) return;
+    tagDY = e.clientY - tagStartY;
+    if(tagDY<0){ var f=$('#tagFootWrap'); if(f) f.style.transform='translateY('+Math.max(tagDY*0.4,-22)+'px)'; }
+  }
+  function tagOnUp(){
+    if(!tagDragging) return; tagDragging=false;
+    var f=$('#tagFootWrap'); if(f) f.style.transform='';
+    if(tagDY < -46){ vibrate(14); openOverlay(); }
+    tagDY=0;
+  }
+
   /* ---------- owner ---------- */
-  function showScreen(id){ ['login','dash'].forEach(function(s){ $('#'+s).classList.toggle('show', s===id); }); }
+  function showScreen(id){ ['tag','login','dash'].forEach(function(s){ $('#'+s).classList.toggle('show', s===id); }); }
   function openLogin(){
     $('#loginPick').innerHTML=restaurants.map(function(r){return '<option value="'+r.id+'">'+esc(r.name)+'</option>';}).join('');
     $('#loginPw').value=''; $('#loginErr').style.display='none'; showScreen('login');
@@ -431,7 +504,12 @@
     S.ownerUpdate(id, ownerPw, fields).then(function(res){ if(res.ok){ if(np&&np.trim()) ownerPw=np.trim(); toast('Saved'); openDash(id); } else { toast('Save failed'); } });
   }
 
-  function goHome(){ showScreen(''); S.refresh().then(function(list){ restaurants=list; renderTrack(); }); }
+  function goHome(){ tagId=null; showScreen(''); S.refresh().then(function(list){ restaurants=list; renderTrack(); }); }
+  function exitTagMode(){
+    tagId=null;
+    try{ history.replaceState({}, '', location.pathname); }catch(e){}
+    goHome();
+  }
 
   function init(){
     stage=$('#stage'); track=$('#track');
@@ -442,7 +520,7 @@
     $('#prev').onclick=function(){ if(index>0) animateTo(index-1); };
     $('#next').onclick=function(){ if(index<restaurants.length-1) animateTo(index+1); };
     document.addEventListener('keydown',function(e){
-      if($('#login').classList.contains('show')||$('#dash').classList.contains('show')||document.querySelector('.ovl')) return;
+      if($('#login').classList.contains('show')||$('#dash').classList.contains('show')||$('#tag').classList.contains('show')||document.querySelector('.ovl')) return;
       if(e.key==='ArrowLeft'&&index>0) animateTo(index-1);
       if(e.key==='ArrowRight'&&index<restaurants.length-1) animateTo(index+1);
     });
@@ -453,9 +531,27 @@
     $('#loginBtn').onclick=doLogin;
     $('#loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
     document.querySelectorAll('[data-home]').forEach(function(b){ b.onclick=goHome; });
-    setInterval(function(){ if($('#login').classList.contains('show')||$('#dash').classList.contains('show')) return; renderTrack(); }, 60000);
+    $('#tagBrowse').onclick=exitTagMode;
+    var tagStage=$('#tagStage');
+    tagStage.addEventListener('pointerdown',tagOnDown);
+    window.addEventListener('pointermove',tagOnMove,{passive:true});
+    window.addEventListener('pointerup',tagOnUp);
+    window.addEventListener('pointercancel',tagOnUp);
+    setInterval(function(){
+      if($('#login').classList.contains('show')||$('#dash').classList.contains('show')) return;
+      if($('#tag').classList.contains('show')){ renderTagFoot(); return; }
+      renderTrack();
+    }, 60000);
 
-    S.init().then(function(r){ restaurants=r.restaurants; renderTrack(); handleReturn(); });
+    S.init().then(function(r){
+      restaurants=r.restaurants;
+      var q; try{ q=new URLSearchParams(location.search); }catch(e){ q=null; }
+      var sid=q&&q.get('session_id');
+      if(sid){ renderTrack(); handleReturn(); return; }
+      var rid=q&&q.get('r');
+      if(rid && enterTagMode(parseInt(rid,10))) return;
+      renderTrack();
+    });
   }
   // After returning from Stripe Checkout, confirm and flip the listing to Paid.
   function handleReturn(){
