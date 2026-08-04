@@ -15,13 +15,13 @@ module.exports = async function (req, res) {
     var rid = (sess.metadata && sess.metadata.restaurantId) || sess.client_reference_id;
     var paidOk = sess.payment_status === 'paid' || sess.status === 'complete';
     if (rid && paidOk) {
-      var s = await L.getState();
-      var r = L.findR(s, rid);
+      var r = await L.getProfile(rid);
       if (r) {
-        r.paid = true; r.claimed = true;
-        r.stripeCustomerId = sess.customer || r.stripeCustomerId;
-        r.stripeSubscriptionId = (sess.subscription && (sess.subscription.id || sess.subscription)) || r.stripeSubscriptionId;
-        await L.saveState(s);
+        await L.updateProfile(r.id, function (p) {
+          p.paid = true; p.claimed = true;
+          p.stripeCustomerId = sess.customer || p.stripeCustomerId;
+          p.stripeSubscriptionId = (sess.subscription && (sess.subscription.id || sess.subscription)) || p.stripeSubscriptionId;
+        });
       }
       L.json(res, 200, { ok: true, paid: true, id: parseInt(rid, 10) });
       return;
