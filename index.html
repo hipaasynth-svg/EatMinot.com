@@ -51,6 +51,9 @@
   @media (prefers-reduced-motion:reduce){.neon{animation:none}}
 
   .body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:11px;padding:14px 16px 16px;overflow:hidden}
+  .body.lean{justify-content:center;gap:22px}
+  .body.lean .row{background:none;padding:0}
+  .body.lean .num{font-size:26px}
   .title{font-size:21px;font-weight:800;letter-spacing:-.01em}
   .meta{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4}
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--cream);border-radius:12px;padding:11px 14px}
@@ -204,14 +207,31 @@
     return out;
   }
 
-  // Shared hero+body markup for a single restaurant — used by both the home carousel
-  // card and the standalone NFC/QR tag-landing view, so the two never drift apart.
-  function cardInner(r){
+  // Lean Rolodex teaser — name, hours, happy-hour cue, and ratings only. Everything
+  // else (address, billboard, punch progress, coupon) lives on that restaurant's
+  // NFC/QR detail page (detailInner, below) — reached only by tapping their tag.
+  function rolodexInner(r){
+    var happy = S.isHappyHourNow(r);
+    var neon = happy ? '<div class="neon"><span class="d"></span>Happy Hour</div>' : '';
+    var claim = r.claimed ? '<div class="badge-claim">CLAIMED</div>' : '';
+    return '<div class="hero" data-hero="'+r.id+'">'+
+        '<div class="stats"><b>'+S.fmtNum(r.upvotes)+'</b><s>upvotes</s></div>'+
+        '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
+      '</div>'+
+      '<div class="body lean">'+
+        '<div><div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.hours)+'</div></div>'+
+        '<div class="row"><div><div class="lbl">Verified ratings</div><div class="num">'+r.totalRatings+'</div></div></div>'+
+      '</div>';
+  }
+  // Full hero+body markup for the standalone NFC/QR tag-landing page — everything the
+  // Rolodex card leaves out: address, Restaurant's Choice billboard, happy-hour special,
+  // punch-card progress, and any earned coupon.
+  function detailInner(r){
     var rec = S.deviceRec(r.id);
     var happy = S.isHappyHourNow(r);
     var neon = happy ? '<div class="neon"><span class="d"></span>Happy Hour</div>' : '';
     var claim = r.claimed ? '<div class="badge-claim">CLAIMED</div>' : '';
-    // Billboard + happy-hour are PAID extras only; nothing shown on free boards.
+    // Billboard + happy-hour special are PAID extras only; nothing shown on free boards.
     var picks = (r.paid && r.picks) ? r.picks.filter(function(p){return p&&p.trim();}) : [];
     var billboard = picks.length ? '<div class="billboard"><div class="k">★ Restaurant\'s Choice</div>'+picks.map(function(p){return '<div class="pick">'+esc(p)+'</div>';}).join('')+'</div>' : '';
     var hhbar = (r.paid && happy) ? '<div class="hhbar"><div class="t">⚡ Happy hour now</div><div class="s">'+esc(r.happyHour.special||'')+' · til '+S.to12h(r.happyHour.end)+'</div></div>' : '';
@@ -233,8 +253,8 @@
         billboard+coupon+
       '</div>';
   }
-  function cardHtml(r){ return '<div class="slide"><div class="card">'+cardInner(r)+'</div></div>'; }
-  function tagCardHtml(r){ return '<div class="card">'+cardInner(r)+'</div>'; }
+  function cardHtml(r){ return '<div class="slide"><div class="card">'+rolodexInner(r)+'</div></div>'; }
+  function tagCardHtml(r){ return '<div class="card">'+detailInner(r)+'</div>'; }
 
   function loadHeroes(){
     document.querySelectorAll('[data-hero]').forEach(function(el){
