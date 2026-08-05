@@ -66,6 +66,7 @@
   .ptItem.hh{background:rgba(57,255,20,.09);border:1px solid rgba(57,255,20,.28)}
   .ptLbl{display:block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
   .ptItem.hh .ptLbl{color:#2f8f1a}
+  .cat{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:rgba(213,87,43,.10);border:1px solid rgba(213,87,43,.22);padding:3px 8px;border-radius:20px;margin-bottom:7px}
   .title{font-size:21px;font-weight:800;letter-spacing:-.01em}
   .meta{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4}
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--cream);border-radius:12px;padding:11px 14px}
@@ -160,6 +161,7 @@
      case content still doesn't fit even at .tight — nothing is ever clipped. */
   .tall.compact .hero{height:clamp(108px,24vh,210px)}
   .tall.compact .body{gap:8px;padding:10px 14px 12px}
+  .tall.compact .cat{margin-bottom:5px}
   .tall.compact .title{font-size:19px}
   .tall.compact .meta{font-size:12px}
   .tall.compact .row{padding:9px 12px}
@@ -175,6 +177,7 @@
 
   .tall.tight .hero{height:clamp(84px,16vh,150px)}
   .tall.tight .body{gap:6px;padding:8px 12px 10px}
+  .tall.tight .cat{font-size:9px;margin-bottom:4px;padding:2px 7px}
   .tall.tight .title{font-size:16.5px}
   .tall.tight .meta{font-size:11px}
   .tall.tight .row{padding:7px 10px}
@@ -289,7 +292,7 @@
         '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
       '</div>'+
       '<div class="body lean">'+
-        '<div><div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.hours)+'</div></div>'+
+        '<div>'+(r.category?'<div class="cat">'+esc(r.category)+'</div>':'')+'<div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.hours)+'</div></div>'+
         teaser+
         '<div class="row"><div><div class="lbl">Verified ratings</div><div class="num">'+r.totalRatings+'</div></div></div>'+
         tapHint+
@@ -321,7 +324,7 @@
         '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
       '</div>'+
       '<div class="body full">'+
-        '<div><div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.address)+' · '+esc(r.hours)+'</div></div>'+
+        '<div>'+(r.category?'<div class="cat">'+esc(r.category)+'</div>':'')+'<div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.address)+' · '+esc(r.hours)+'</div></div>'+
         hhbar+
         '<div class="row"><div><div class="lbl">Verified ratings</div><div class="num">'+r.totalRatings+'</div></div>'+
           '<div style="text-align:right"><div class="lbl">Your punches</div><div class="ticks">'+ticks+'</div>'+

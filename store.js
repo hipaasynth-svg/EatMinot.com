@@ -16,59 +16,85 @@
   var TAP_WINDOW_MS = 7200000;        // how long a real tag tap keeps the Rate button reachable (2h)
   var DEFAULT_ADMIN = 'minot-admin';
 
+  // RAW order is FROZEN: each restaurant's id is its 1-based position here (see seedList),
+  // and those ids are printed on the in-store NFC/QR tags (?r=<id>) and used as the key
+  // for server-stored votes/profiles. Never reorder or remove rows — only append. The 4th
+  // column is the cuisine category; the site GROUPS and ALPHABETIZES for display by
+  // category + name at render time (see decorateList), so ids stay stable regardless.
   var RAW = [
-    ["The Starving Rooster", "30 1st St NE, Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-9pm"],
-    ["Ebeneezer's Eatery & Irish Pub", "300 E Central Ave, Minot, ND 58701", "Daily 7am-1am (kitchen closes ~10pm)"],
-    ["Bone's BBQ Smokehouse & Grill", "437 N Broadway, Minot, ND 58703", "Daily ~11am-10/11pm"],
-    ["Ironhorse Kitchen + Bar", "21 E Central Ave, Minot, ND 58701", "Mon-Thu 11am-11pm, Fri-Sat 11am-12am, Sun Closed"],
-    ["Charlie's Main Street Cafe", "113 Main St S, Minot, ND 58701", "Mon-Sat 7am-2pm, Sun 8am-2pm"],
-    ["Kroll's Diner", "1221 20th Ave SE, Minot, ND 58701", "Daily 7am-8:45pm"],
-    ["Little Blue Elephant", "22 S Main St, Minot, ND 58701", "Verify hours"],
-    ["Basecamp Indian Kitchen", "1425 24th Ave SW, Minot, ND 58701", "Mon, Wed-Sun 11am-9pm, Tue Closed"],
-    ["Prairie Sky Breads", "3 1st St SE, Minot, ND 58701", "Morning-afternoon bakery hours"],
-    ["Magic City Hoagies & Sweets", "123 Main St S, Minot, ND 58701", "Verify hours"],
-    ["Minot's Daily Bread", "1500 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Badlands Restaurant and Bar", "1400 31st Ave SW, Minot, ND 58701", "Verify hours"],
-    ["The Depot and Baggage Claim", "15 Main St N, Minot, ND 58703", "Tue-Thu 11am-9pm, Fri 11am-11pm, Sat 10am-11pm, Sun 10am-2pm, Mon Closed"],
-    ["Oishii Ramen", "Downtown Minot", "Verify hours"],
-    ["Don Tapatío", "1445 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Mi Mexico Restaurant", "3816 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Baan Rao Thai Restaurant", "Minot, ND", "Verify hours"],
-    ["Ziggy's Caribbean Cuisine", "201 University Ave W, Minot, ND 58703", "Verify hours"],
-    ["China Star", "1631 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Verify hours"],
-    ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Verify hours"],
-    ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Nite Train Pizza", "515 20th Ave SE, Minot, ND 58701", "Verify hours"],
-    ["Uncle Maddio's Pizza Joint", "3310 16th St SW, Minot, ND 58701", "Verify hours"],
-    ["Taco Feliz", "1535 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["El Azteca", "2035 N Broadway, Minot, ND 58703", "Verify hours"],
-    ["Homesteaders Restaurant", "2501 Elk Dr, Minot, ND 58701", "Mon-Sat 6:30am-8pm, Sun 7am-8pm"],
-    ["Off The Vine", "15 Main St S, Minot, ND 58701", "Verify hours"],
-    ["Souris River Brewing", "32 3rd St NE, Minot, ND 58703", "Verify hours"],
-    ["Broadway Bean and Bagel", "Minot, ND", "Verify hours"],
-    ["Do Eat", "2400 10th St SW #522 (Dakota Square Mall), Minot, ND 58701", "Sun-Thu 11am-9:30pm, Fri-Sat 11am-10pm"],
-    ["Try Thai Food", "1524 S Broadway #4A, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun Closed"],
-    ["Beowulf Craft Kitchen & Lounge", "1912 Valley Bluffs Dr, Minot, ND 58701", "Mon-Thu 11am-10pm, Fri-Sat 9:30am-10pm, Sun 9:30am-8pm"],
-    ["El Arepazo", "2251 36th Ave SW, Minot, ND 58701", "Mon-Sat 10am-7pm, Sun Closed"],
-    ["Prairie Pit BBQ", "1809 S Broadway (Enerbase), Minot, ND 58701", "Daily 11am-8pm"],
-    ["The Bunker Bar and Grill", "Old Ground Round location, Minot, ND", "Sun-Thu 11am-10pm, Fri-Sat 11am-11pm"],
-    ["El Reparo Mexican Grill & Cantina", "1735 S Broadway, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun 11am-8pm"],
-    ["Thaihot 2 / Thai Hot", "122 Main St S, Minot, ND 58701", "Mon-Sat ~11am-9/9:30pm (Sun often closed - verify)"],
-    ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)"],
-    ["Primo", "1505 N Broadway (Grand International), Minot, ND 58703", "Breakfast & dinner hours – verify (often closed Mon)"],
-    ["Paradiso Mexican Restaurant", "1445 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Joe's Italian Restaurant", "7 1st St SE, Minot, ND 58701", "Verify hours"],
-    ["Lucky Bowl", "122 Main St S, Minot, ND 58701", "Verify hours"],
-    ["Rocky's Burgers Franks & Fries", "623 N Broadway, Minot, ND 58703", "Verify hours"],
-    ["Fun On A Bun", "101 Main St S, Minot, ND 58701", "Verify hours"],
-    ["Poppa's Place", "510 Central Ave E, Minot, ND 58701", "Verify hours"],
-    ["10 North Main", "10 Main St N, Minot, ND 58703", "Verify hours"],
-    ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Verify hours"],
-    ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours"],
-    ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours"],
-    ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours"]
+    ["The Starving Rooster", "30 1st St NE, Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-9pm", "American"],
+    ["Ebeneezer's Eatery & Irish Pub", "300 E Central Ave, Minot, ND 58701", "Daily 7am-1am (kitchen closes ~10pm)", "Bars & Breweries"],
+    ["Bone's BBQ Smokehouse & Grill", "437 N Broadway, Minot, ND 58703", "Daily ~11am-10/11pm", "BBQ"],
+    ["Ironhorse Kitchen + Bar", "21 E Central Ave, Minot, ND 58701", "Mon-Thu 11am-11pm, Fri-Sat 11am-12am, Sun Closed", "American"],
+    ["Charlie's Main Street Cafe", "113 Main St S, Minot, ND 58701", "Mon-Sat 7am-2pm, Sun 8am-2pm", "Cafés & Bakeries"],
+    ["Kroll's Diner", "1221 20th Ave SE, Minot, ND 58701", "Daily 7am-8:45pm", "American"],
+    ["Little Blue Elephant", "22 S Main St, Minot, ND 58701", "Verify hours", "Asian"],
+    ["Basecamp Indian Kitchen", "1425 24th Ave SW, Minot, ND 58701", "Mon, Wed-Sun 11am-9pm, Tue Closed", "Indian"],
+    ["Prairie Sky Breads", "3 1st St SE, Minot, ND 58701", "Morning-afternoon bakery hours", "Cafés & Bakeries"],
+    ["Magic City Hoagies & Sweets", "123 Main St S, Minot, ND 58701", "Verify hours", "Sandwiches & Delis"],
+    ["Minot's Daily Bread", "1500 S Broadway, Minot, ND 58701", "Verify hours", "Cafés & Bakeries"],
+    ["Badlands Restaurant and Bar", "1400 31st Ave SW, Minot, ND 58701", "Verify hours", "American"],
+    ["The Depot and Baggage Claim", "15 Main St N, Minot, ND 58703", "Tue-Thu 11am-9pm, Fri 11am-11pm, Sat 10am-11pm, Sun 10am-2pm, Mon Closed", "American"],
+    ["Oishii Ramen", "Downtown Minot", "Verify hours", "Asian"],
+    ["Don Tapatío", "1445 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
+    ["Mi Mexico Restaurant", "3816 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
+    ["Baan Rao Thai Restaurant", "Minot, ND", "Verify hours", "Asian"],
+    ["Ziggy's Caribbean Cuisine", "201 University Ave W, Minot, ND 58703", "Verify hours", "International"],
+    ["China Star", "1631 S Broadway, Minot, ND 58701", "Verify hours", "Asian"],
+    ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Verify hours", "Burgers"],
+    ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Verify hours", "Pizza"],
+    ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Verify hours", "Pizza"],
+    ["Nite Train Pizza", "515 20th Ave SE, Minot, ND 58701", "Verify hours", "Pizza"],
+    ["Uncle Maddio's Pizza Joint", "3310 16th St SW, Minot, ND 58701", "Verify hours", "Pizza"],
+    ["Taco Feliz", "1535 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
+    ["El Azteca", "2035 N Broadway, Minot, ND 58703", "Verify hours", "Mexican"],
+    ["Homesteaders Restaurant", "2501 Elk Dr, Minot, ND 58701", "Mon-Sat 6:30am-8pm, Sun 7am-8pm", "American"],
+    ["Off The Vine", "15 Main St S, Minot, ND 58701", "Verify hours", "Bars & Breweries"],
+    ["Souris River Brewing", "32 3rd St NE, Minot, ND 58703", "Verify hours", "Bars & Breweries"],
+    ["Broadway Bean and Bagel", "Minot, ND", "Verify hours", "Cafés & Bakeries"],
+    ["Do Eat", "2400 10th St SW #522 (Dakota Square Mall), Minot, ND 58701", "Sun-Thu 11am-9:30pm, Fri-Sat 11am-10pm", "Asian"],
+    ["Try Thai Food", "1524 S Broadway #4A, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun Closed", "Asian"],
+    ["Beowulf Craft Kitchen & Lounge", "1912 Valley Bluffs Dr, Minot, ND 58701", "Mon-Thu 11am-10pm, Fri-Sat 9:30am-10pm, Sun 9:30am-8pm", "American"],
+    ["El Arepazo", "2251 36th Ave SW, Minot, ND 58701", "Mon-Sat 10am-7pm, Sun Closed", "International"],
+    ["Prairie Pit BBQ", "1809 S Broadway (Enerbase), Minot, ND 58701", "Daily 11am-8pm", "BBQ"],
+    ["The Bunker Bar and Grill", "Old Ground Round location, Minot, ND", "Sun-Thu 11am-10pm, Fri-Sat 11am-11pm", "American"],
+    ["El Reparo Mexican Grill & Cantina", "1735 S Broadway, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun 11am-8pm", "Mexican"],
+    ["Thaihot 2 / Thai Hot", "122 Main St S, Minot, ND 58701", "Mon-Sat ~11am-9/9:30pm (Sun often closed - verify)", "Asian"],
+    ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)", "Mediterranean"],
+    ["Primo", "1505 N Broadway (Grand International), Minot, ND 58703", "Breakfast & dinner hours – verify (often closed Mon)", "American"],
+    ["Paradiso Mexican Restaurant", "1445 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
+    ["Joe's Italian Restaurant", "7 1st St SE, Minot, ND 58701", "Verify hours", "Italian"],
+    ["Lucky Bowl", "122 Main St S, Minot, ND 58701", "Verify hours", "Asian"],
+    ["Rocky's Burgers Franks & Fries", "623 N Broadway, Minot, ND 58703", "Verify hours", "Burgers"],
+    ["Fun On A Bun", "101 Main St S, Minot, ND 58701", "Verify hours", "Burgers"],
+    ["Poppa's Place", "510 Central Ave E, Minot, ND 58701", "Verify hours", "American"],
+    ["10 North Main", "10 Main St N, Minot, ND 58703", "Verify hours", "American"],
+    ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Verify hours", "Asian"],
+    ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours", "Pizza"],
+    ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours", "Pizza"],
+    ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours", "Pizza"]
   ];
+  var DEFAULT_CATEGORY = 'Other';
+  // Category for a given restaurant id, read straight from the frozen RAW table so it
+  // never depends on the (sorted) display order.
+  function categoryOf(id) { var row = RAW[id - 1]; return (row && row[3]) || DEFAULT_CATEGORY; }
+  // Alphabetization key: ignore a leading "The " so "The Depot" files under D, and compare
+  // case-insensitively with numeric awareness ("10 North Main" sorts naturally).
+  function sortKey(name) { return String(name == null ? '' : name).replace(/^the\s+/i, ''); }
+  // Produce the public display list: attach the cuisine category, compute the star average,
+  // then GROUP by category (alphabetically) and ALPHABETIZE restaurants within each group.
+  // Returns a fresh array so the caller's source list keeps its id order untouched.
+  function decorateList(list) {
+    return list.map(function (r) {
+      withRating(r);
+      r.category = categoryOf(r.id);
+      return r;
+    }).sort(function (a, b) {
+      var c = String(a.category).localeCompare(String(b.category), undefined, { sensitivity: 'base' });
+      if (c) return c;
+      return sortKey(a.name).localeCompare(sortKey(b.name), undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
 
   function slug(n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); }
   function defaultPassword(n) { return slug(n) + '26'; }
@@ -201,17 +227,17 @@
     return api('state').then(function (res) {
       if (res.ok && res.data && res.data.persistent) {
         mode = 'server';
-        cache = res.data.restaurants.map(withRating);
+        cache = decorateList(res.data.restaurants);
       } else { throw new Error('no server'); }
     }).catch(function () {
       mode = 'local';
-      cache = loadLocal().restaurants.map(withRating);
+      cache = decorateList(loadLocal().restaurants);
     }).then(function () { return { mode: mode, restaurants: cache }; });
   }
 
   function refresh() {
-    if (mode === 'server') return api('state').then(function (res) { if (res.ok) cache = res.data.restaurants.map(withRating); return cache; });
-    cache = loadLocal().restaurants.map(withRating); return Promise.resolve(cache);
+    if (mode === 'server') return api('state').then(function (res) { if (res.ok) cache = decorateList(res.data.restaurants); return cache; });
+    cache = decorateList(loadLocal().restaurants); return Promise.resolve(cache);
   }
 
   function list() { return cache; }
@@ -259,7 +285,7 @@
     var d = loadLocal(); var lr = localFind(d, id);
     if (!lr) return Promise.resolve({ ok: false, reason: 'not_found' });
     lr.totalRatings += 1; lr.ratingSum += stars; lr.ratingCount += 1; if (upvote) lr.upvotes += 1;
-    saveLocal(d); cache = d.restaurants.map(withRating);
+    saveLocal(d); cache = decorateList(d.restaurants);
     var rec2 = punch(id, lr.couponValidDays, lr.reward);
     return Promise.resolve({ ok: true, record: rec2 });
   }
@@ -281,7 +307,7 @@
     if (fields.couponValidDays != null) lr.couponValidDays = Math.max(1, parseInt(fields.couponValidDays, 10) || 1);
     if (fields.happyHour) lr.happyHour = fields.happyHour;
     if (typeof fields.password === 'string' && fields.password.trim()) lr.password = fields.password.trim();
-    var ok = saveLocal(d); cache = d.restaurants.map(withRating);
+    var ok = saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: ok });
   }
 
@@ -291,7 +317,7 @@
     var d = loadLocal(), lr = localFind(d, id);
     if (!lr || pw !== lr.password) return Promise.resolve({ ok: false });
     if (!lr.paid) return Promise.resolve({ ok: false });
-    lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = d.restaurants.map(withRating);
+    lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: ok });
   }
   function ownerPickPhoto(id, pw, i, dataUrl) {
@@ -303,7 +329,7 @@
     if (!lr.pickPhotos) lr.pickPhotos = [null, null, null];
     if (!lr.hasPickPhoto) lr.hasPickPhoto = [false, false, false];
     lr.pickPhotos[i] = dataUrl; lr.hasPickPhoto[i] = true;
-    var ok2 = saveLocal(d); cache = d.restaurants.map(withRating);
+    var ok2 = saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: ok2 });
   }
 
@@ -329,14 +355,14 @@
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'photo', id: id, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
-    lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = d.restaurants.map(withRating);
+    lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: ok });
   }
   function adminRemovePhoto(pw, id) {
     clearPhoto(id);
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'removePhoto', id: id }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
-    var d = loadLocal(), lr = localFind(d, id); if (lr) { lr.photo = null; lr.hasPhoto = false; saveLocal(d); cache = d.restaurants.map(withRating); }
+    var d = loadLocal(), lr = localFind(d, id); if (lr) { lr.photo = null; lr.hasPhoto = false; saveLocal(d); cache = decorateList(d.restaurants); }
     return Promise.resolve({ ok: true });
   }
   function adminPickPhoto(pw, id, i, dataUrl) {
@@ -347,7 +373,7 @@
     if (!lr.pickPhotos) lr.pickPhotos = [null, null, null];
     if (!lr.hasPickPhoto) lr.hasPickPhoto = [false, false, false];
     lr.pickPhotos[i] = dataUrl; lr.hasPickPhoto[i] = true;
-    var ok3 = saveLocal(d); cache = d.restaurants.map(withRating);
+    var ok3 = saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: ok3 });
   }
   function adminRemovePickPhoto(pw, id, i) {
@@ -355,7 +381,7 @@
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'removePhoto', id: id, pick: i }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
     var d = loadLocal(), lr = localFind(d, id);
-    if (lr) { if (!lr.pickPhotos) lr.pickPhotos=[null,null,null]; if(!lr.hasPickPhoto) lr.hasPickPhoto=[false,false,false]; lr.pickPhotos[i]=null; lr.hasPickPhoto[i]=false; saveLocal(d); cache = d.restaurants.map(withRating); }
+    if (lr) { if (!lr.pickPhotos) lr.pickPhotos=[null,null,null]; if(!lr.hasPickPhoto) lr.hasPickPhoto=[false,false,false]; lr.pickPhotos[i]=null; lr.hasPickPhoto[i]=false; saveLocal(d); cache = decorateList(d.restaurants); }
     return Promise.resolve({ ok: true });
   }
   function adminSetFlag(pw, id, flags) {
@@ -364,7 +390,7 @@
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
     if (typeof flags.claimed === 'boolean') { lr.claimed = flags.claimed; if (!lr.claimed) lr.paid = false; }
     if (typeof flags.paid === 'boolean') { lr.paid = flags.paid; if (lr.paid) lr.claimed = true; }
-    saveLocal(d); cache = d.restaurants.map(withRating); return Promise.resolve({ ok: true });
+    saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
   }
   function adminResetPassword(pw, id) {
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'resetPassword', id: id }).then(function (res) { return { ok: res.ok, defaultPassword: res.data && res.data.defaultPassword }; });
@@ -376,7 +402,7 @@
     photoCache = {};
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'reset' }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
-    var d = { restaurants: seedList() }; saveLocal(d); cache = d.restaurants.map(withRating); return Promise.resolve({ ok: true });
+    var d = { restaurants: seedList() }; saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
   }
   function setAdminPasswordLocal(pw) { try { global.localStorage.setItem(AKEY, pw); return true; } catch (e) { return false; } }
 
