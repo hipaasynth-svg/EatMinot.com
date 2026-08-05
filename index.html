@@ -30,11 +30,16 @@
   /* Carousel — horizontal Rolodex only, no vertical scroll anywhere */
   .stage{flex:1 1 auto;min-height:0;position:relative;overflow:hidden;padding:2px 4px 4px;touch-action:none;cursor:grab}
   .stage:active{cursor:grabbing}
+  /* Tag/detail page reuses .stage's flex sizing but scrolls natively — its content
+     (address, billboard, coupon, etc.) can run taller than one screen. */
+  #tagStage{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;cursor:auto}
   .track{display:flex;height:100%;will-change:transform}
   .track.noanim,.track.noanim .slide{transition:none!important}
   .slide{flex:0 0 86%;height:100%;padding:0 6px;transition:transform .4s cubic-bezier(.22,.61,.36,1),opacity .4s;transform-origin:center center}
   .card{background:var(--card);border-radius:18px;border:1px solid var(--line);
     box-shadow:0 14px 40px rgba(28,25,23,0.10);overflow:hidden;display:flex;flex-direction:column;height:100%}
+  /* Tag/detail page card: grow past 100% instead of clipping when content is tall. */
+  .card.tall{height:auto;min-height:100%}
   .hero{position:relative;width:100%;flex:none;height:clamp(140px,32vh,290px);background:#E9E2D6 center/cover no-repeat}
   .stats{position:absolute;left:14px;bottom:12px;display:flex;align-items:baseline;gap:8px;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.4)}
   .stats b{font-size:40px;font-weight:800;color:rgba(255,255,255,.92);letter-spacing:-.02em;line-height:1}
@@ -52,6 +57,7 @@
 
   .body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:11px;padding:14px 16px 16px;overflow:hidden}
   .body.lean{justify-content:center;gap:22px}
+  .body.full{overflow:visible}
   .body.lean .row{background:none;padding:0}
   .body.lean .num{font-size:26px}
   .tapHint{font-size:11.5px;font-weight:700;color:var(--accent);text-align:center}
@@ -142,13 +148,11 @@
   .toast.show{opacity:1}
 
   /* NFC/QR tag landing screen */
-  .foot{transition:transform .18s ease}
-  .swipeup{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 0 2px}
-  .swipeup svg{animation:swipebounce 1.4s ease-in-out infinite}
-  .swipeup .swipeText{font-size:13px;font-weight:800;color:var(--ink)}
-  @keyframes swipebounce{0%,100%{transform:translateY(2px);opacity:.5}50%{transform:translateY(-8px);opacity:1}}
-  @media (prefers-reduced-motion:reduce){.swipeup svg{animation:none}}
   .ratedmsg{text-align:center;font-size:13px;font-weight:800;color:#2F6B3F;padding:10px 0}
+  /* Resumable "Rate" pill on the home screen — shown for up to 2h after a real tag
+     tap, so browsing away from the tag page (e.g. to compare other places) doesn't
+     lose the ability to rate without finding the tag again. */
+  .resumeBtn{width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -164,8 +168,9 @@
     <div class="track" id="track"></div>
   </div>
   <div class="foot">
+    <div id="resumeWrap"></div>
     <div class="dots" id="dots"></div>
-    <div class="hint">Find our NFC tag or QR code in-store to rate — tap it, then swipe up</div>
+    <div class="hint">Find our NFC tag or QR code in-store to rate — tap it, then tap Rate</div>
   </div>
 
   <!-- NFC / QR TAG LANDING -->
@@ -175,7 +180,7 @@
       <button class="ownerlink" id="tagBrowse">Browse all →</button>
     </div>
     <div class="stage" id="tagStage">
-      <div id="tagCardHost" style="width:100%;height:100%"></div>
+      <div id="tagCardHost" style="width:100%;min-height:100%"></div>
     </div>
     <div class="foot" id="tagFootWrap">
       <div id="tagFoot"></div>
@@ -281,7 +286,7 @@
         '<div class="stats"><b>'+S.fmtNum(r.upvotes)+'</b><s>upvotes</s></div>'+
         '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
       '</div>'+
-      '<div class="body">'+
+      '<div class="body full">'+
         '<div><div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.address)+' · '+esc(r.hours)+'</div></div>'+
         hhbar+
         '<div class="row"><div><div class="lbl">Verified ratings</div><div class="num">'+r.totalRatings+'</div></div>'+
@@ -291,7 +296,7 @@
       '</div>';
   }
   function cardHtml(r){ return '<div class="slide"><div class="card">'+rolodexInner(r)+'</div></div>'; }
-  function tagCardHtml(r){ return '<div class="card">'+detailInner(r)+'</div>'; }
+  function tagCardHtml(r){ return '<div class="card tall">'+detailInner(r)+'</div>'; }
 
   function loadHeroes(){
     document.querySelectorAll('[data-hero]').forEach(function(el){
@@ -307,7 +312,17 @@
   }
   function renderTrack(){
     $('#track').innerHTML = restaurants.map(cardHtml).join('');
-    renderDots(); layout(true); loadHeroes();
+    renderDots(); layout(true); loadHeroes(); renderResumeBar();
+  }
+  // Resumable "Rate <name> now →" pill: shown on the home screen for up to 2h after
+  // a real tag tap (S.recordTap in enterTagMode), so browsing away mid-visit doesn't
+  // strand the customer without a way back to rating short of re-finding the tag.
+  function renderResumeBar(){
+    var host=$('#resumeWrap'); if(!host) return;
+    var p=S.pendingTap(), r=p&&S.get(p.id);
+    if(!r){ host.innerHTML=''; return; }
+    host.innerHTML='<button class="btn accent resumeBtn" id="resumeBtn">Rate '+esc(r.name)+' now<span>→</span></button>';
+    $('#resumeBtn').onclick=function(){ enterTagMode(r.id); };
   }
   function renderDots(){
     var d=''; for(var i=0;i<restaurants.length;i++){ d+='<div class="dot'+(i===index?' on':'')+'"></div>'; }
@@ -474,14 +489,18 @@
 
   /* ---------- NFC/QR tag landing (?r=<id>) + Paid tap-through preview ----------
      tagVerified is the whole enforcement point: true only when this screen was reached
-     via a real ?r=<id> URL (an actual tag tap/QR scan). A Paid card tap in the Rolodex
-     shows the exact same screen with tagVerified=false — full info, no swipe-up-to-rate,
-     no #swipeHint at all — so rating stays reachable only by physically tapping the tag. */
+     via a real ?r=<id> URL (an actual tag tap/QR scan) — that's what unlocks the Rate
+     button in renderTagFoot(). A Paid card tap in the Rolodex shows the exact same
+     screen with tagVerified=false — full info, no Rate button — so rating stays
+     reachable only by physically tapping the tag. A real tap also records a local
+     timestamp (S.recordTap) so the Rate button can resurface as a "Rate now →" pill
+     on the home screen for up to 2h, in case someone browses away mid-visit. */
   var tagId = null, tagVerified = false;
   function enterTagMode(id){
     var idx = restaurants.findIndex(function(x){ return x.id===id; });
     if(idx<0) return false;
     tagId = id; tagVerified = true; index = idx; // reuse cur()/openOverlay()/confirmRate() unmodified
+    S.recordTap(id);
     renderTagScreen();
     showScreen('tag');
     return true;
@@ -585,24 +604,8 @@
       host.innerHTML = '<div class="ratedmsg">✓ Rated — thanks! Come back in 24h.</div>';
       return;
     }
-    host.innerHTML = '<div class="swipeup" id="swipeHint">'+
-      '<svg width="22" height="14" viewBox="0 0 24 14"><path d="M2 12 L12 2 L22 12" stroke="#1C1917" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>'+
-      '<div class="swipeText">Swipe up to rate</div></div>';
-    var sh=$('#swipeHint'); if(sh) sh.onclick = openOverlay;
-  }
-  // Vertical drag scoped only to the tag screen — the home carousel stays horizontal-only.
-  var tagDragging=false, tagStartY=0, tagDY=0;
-  function tagOnDown(e){ if(document.querySelector('.ovl')) return; tagDragging=true; tagStartY=e.clientY; tagDY=0; }
-  function tagOnMove(e){
-    if(!tagDragging) return;
-    tagDY = e.clientY - tagStartY;
-    if(tagDY<0){ var f=$('#tagFootWrap'); if(f) f.style.transform='translateY('+Math.max(tagDY*0.4,-22)+'px)'; }
-  }
-  function tagOnUp(){
-    if(!tagDragging) return; tagDragging=false;
-    var f=$('#tagFootWrap'); if(f) f.style.transform='';
-    if(tagDY < -46 && tagVerified){ vibrate(14); openOverlay(); }
-    tagDY=0;
+    host.innerHTML = '<button class="btn accent" id="rateBtn">Rate this visit ★</button>';
+    var rb=$('#rateBtn'); if(rb) rb.onclick = openOverlay;
   }
 
   /* ---------- owner ---------- */
@@ -726,11 +729,6 @@
     $('#loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
     document.querySelectorAll('[data-home]').forEach(function(b){ b.onclick=goHome; });
     $('#tagBrowse').onclick=exitTagMode;
-    var tagStage=$('#tagStage');
-    tagStage.addEventListener('pointerdown',tagOnDown);
-    window.addEventListener('pointermove',tagOnMove,{passive:true});
-    window.addEventListener('pointerup',tagOnUp);
-    window.addEventListener('pointercancel',tagOnUp);
     window.addEventListener('pointerdown',ovlOnDown);
     window.addEventListener('pointermove',ovlOnMove,{passive:true});
     window.addEventListener('pointerup',ovlOnUp);
