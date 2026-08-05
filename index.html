@@ -153,6 +153,40 @@
      tap, so browsing away from the tag page (e.g. to compare other places) doesn't
      lose the ability to rate without finding the tag again. */
   .resumeBtn{width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+
+  /* Auto-fit tiers for the tag/detail page — fitTagCard() in JS measures the card
+     against the visible stage and steps down through these until content fits
+     without scrolling. #tagStage keeps overflow-y:auto as a fallback for the rare
+     case content still doesn't fit even at .tight — nothing is ever clipped. */
+  .tall.compact .hero{height:clamp(108px,24vh,210px)}
+  .tall.compact .body{gap:8px;padding:10px 14px 12px}
+  .tall.compact .title{font-size:19px}
+  .tall.compact .meta{font-size:12px}
+  .tall.compact .row{padding:9px 12px}
+  .tall.compact .num{font-size:17px}
+  .tall.compact .lbl{font-size:10px}
+  .tall.compact .hhbar{padding:8px 11px}
+  .tall.compact .hhbar .t,.tall.compact .hhbar .s{font-size:11px}
+  .tall.compact .pcWrap{gap:7px}
+  .tall.compact .pcLabel{font-size:10px}
+  .tall.compact .pcStage{height:120px}
+  .tall.compact .pcText{padding:7px 9px;font-size:11.5px}
+  .tall.compact .coupon{padding:9px 12px}
+
+  .tall.tight .hero{height:clamp(84px,16vh,150px)}
+  .tall.tight .body{gap:6px;padding:8px 12px 10px}
+  .tall.tight .title{font-size:16.5px}
+  .tall.tight .meta{font-size:11px}
+  .tall.tight .row{padding:7px 10px}
+  .tall.tight .num{font-size:15px}
+  .tall.tight .lbl{font-size:9.5px}
+  .tall.tight .hhbar{padding:6px 9px}
+  .tall.tight .hhbar .t,.tall.tight .hhbar .s{font-size:10.5px}
+  .tall.tight .pcWrap{gap:5px}
+  .tall.tight .pcLabel{font-size:9.5px}
+  .tall.tight .pcStage{height:88px}
+  .tall.tight .pcText{padding:5px 8px;font-size:10.5px}
+  .tall.tight .coupon{padding:7px 10px}
 </style>
 </head>
 <body>
@@ -501,24 +535,44 @@
     if(idx<0) return false;
     tagId = id; tagVerified = true; index = idx; // reuse cur()/openOverlay()/confirmRate() unmodified
     S.recordTap(id);
-    renderTagScreen();
+    // Show the screen BEFORE rendering into it: fitTagCard()/pcMeasure() read layout
+    // (clientHeight/clientWidth), which is always 0 on a display:none ancestor —
+    // rendering first would silently measure nothing and skip straight to "it fits".
     showScreen('tag');
+    renderTagScreen();
     return true;
   }
   function openPaidPreview(id){
     var idx = restaurants.findIndex(function(x){ return x.id===id; });
     if(idx<0) return;
     tagId = id; tagVerified = false; index = idx;
-    renderTagScreen();
     showScreen('tag');
+    renderTagScreen();
   }
   function renderTagScreen(){
     var r = S.get(tagId); if(!r) return;
     $('#tagCardHost').innerHTML = tagCardHtml(r);
     loadHeroes();
     loadPickPhotos();
+    renderTagFoot();   // must run before fitTagCard() — the foot's height (e.g. the
+                        // Rate button) eats into #tagStage's available space, so
+                        // fitting against it beforehand would fit against a taller
+                        // stage than the page will actually end up with.
+    fitTagCard();
     initPickCarousel();
-    renderTagFoot();
+  }
+  // Steps the card through progressively denser layouts (.compact, then .tight —
+  // see CSS) until its natural height fits the visible stage, so the page fits one
+  // screen on most devices without scrolling. Photos load in via background-image
+  // on already-sized boxes, so they never change these measurements after the fact.
+  var TAG_DENSITIES = ['', 'compact', 'tight'];
+  function fitTagCard(){
+    var stage=$('#tagStage'), card=stage&&stage.querySelector('.card'); if(!stage||!card) return;
+    var avail = stage.clientHeight;
+    for(var i=0;i<TAG_DENSITIES.length;i++){
+      card.className = 'card tall' + (TAG_DENSITIES[i]?' '+TAG_DENSITIES[i]:'');
+      if(card.scrollHeight <= avail) break;
+    }
   }
 
   /* ---------- floating 3-pick photo carousel, on the detail page only ----------
@@ -722,8 +776,8 @@
       if(e.key==='ArrowLeft'&&index>0) animateTo(index-1);
       if(e.key==='ArrowRight'&&index<restaurants.length-1) animateTo(index+1);
     });
-    window.addEventListener('resize',function(){ layout(true); });
-    window.addEventListener('orientationchange',function(){ setTimeout(function(){layout(true);},250); });
+    window.addEventListener('resize',function(){ layout(true); if($('#tag').classList.contains('show')) fitTagCard(); });
+    window.addEventListener('orientationchange',function(){ setTimeout(function(){layout(true); if($('#tag').classList.contains('show')) fitTagCard();},250); });
     $('#ownerLink').onclick=openLogin;
     $('#loginBtn').onclick=doLogin;
     $('#loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
