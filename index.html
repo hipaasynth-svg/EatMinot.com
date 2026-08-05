@@ -369,15 +369,37 @@
     var thumbFill = ov.upvote?'#fff':'rgba(255,255,255,.5)';
     var starsHtml=''; for(var i=0;i<5;i++){ var f=i<ov.rating?'#fff':'rgba(255,255,255,.32)'; starsHtml+='<svg width="40" height="40" viewBox="0 0 20 20"><path d="'+STAR+'" fill="'+f+'"></path></svg>'; }
     var skip = (ov.step==='selected' && !ov.upvote) ? '<button class="skip" id="ovSkip">Submit stars only — no upvote</button>' : '';
-    host.innerHTML='<div class="ovl" style="background:'+accent+'ee"><button class="x" id="ovX">✕</button>'+
+    host.innerHTML='<div class="ovl" id="ovBox" style="background:'+accent+'ee"><button class="x" id="ovX">✕</button>'+
       (showName?'<div class="rn">'+esc(r.name)+'</div>':'')+
       '<button class="thumb" id="ovThumb"><svg width="82" height="82" viewBox="0 0 24 24"><path d="M2 21h3V9H2v12zm19.83-11.06c.11-.25.17-.52.17-.8V8c0-1.1-.9-2-2-2h-5.5l.85-4.1.03-.32c0-.41-.17-.79-.44-1.06L13.83 0 7.41 6.41C7.05 6.78 6.83 7.28 6.83 7.83V19a2 2 0 002 2h9c.82 0 1.54-.5 1.84-1.22l3-7.06z" fill="'+thumbFill+'"></path></svg></button>'+
       '<div class="starbtns" id="ovStars">'+starsHtml+'</div>'+
-      '<div class="ohint">'+(ov.upvote?'Now tap a star to finish':'Tap 👍 then a star — or just tap stars')+'</div>'+skip+'</div>';
+      '<div class="ohint">'+(ov.upvote?'Now tap a star to finish':'Tap 👍 then a star — or just tap stars')+'</div>'+skip+
+      (ov.step==='ready'||ov.step==='selected'?'<div class="ohint" style="margin-top:10px;opacity:.6">Swipe down or tap ✕ to cancel</div>':'')+'</div>';
     $('#ovX').onclick=closeOverlay; $('#ovThumb').onclick=tapThumb; $('#ovStars').onclick=tapStars;
     if($('#ovSkip')) $('#ovSkip').onclick=function(){ confirmRate(ov.rating,false); };
   }
   function closeOverlay(){ ov=null; $('#overlayHost').innerHTML=''; }
+  // Swipe down anywhere on the open overlay cancels it — the reverse of the swipe-up
+  // that opened it, so an accidental trigger is just as easy to undo. Only cancelable
+  // before a rating is actually submitted (step 'ready'/'selected'); once confirmRate()
+  // has fired, the request is already in flight and this no longer applies.
+  var ovlDragging=false, ovlStartY=0, ovlDY=0;
+  function ovlOnDown(e){
+    if(!ov || (ov.step!=='ready' && ov.step!=='selected')) return;
+    ovlDragging=true; ovlStartY=e.clientY; ovlDY=0;
+  }
+  function ovlOnMove(e){
+    if(!ovlDragging) return;
+    ovlDY=Math.max(0,e.clientY-ovlStartY);
+    var box=$('#ovBox'); if(box) box.style.transform='translateY('+ovlDY+'px)';
+  }
+  function ovlOnUp(){
+    if(!ovlDragging) return; ovlDragging=false;
+    var box=$('#ovBox');
+    if(ovlDY>70){ vibrate(10); closeOverlay(); return; }
+    if(box){ box.style.transition='transform .18s ease'; box.style.transform=''; setTimeout(function(){ if(box) box.style.transition=''; },200); }
+    ovlDY=0;
+  }
   function tapThumb(){ if(ov.step==='ready'){ ov.upvote=true; drawOverlay(); return; } if(ov.step==='selected'){ confirmRate(ov.rating,true); } }
   function tapStars(e){
     if(ov.step!=='ready'&&ov.step!=='selected') return;
@@ -553,6 +575,10 @@
     window.addEventListener('pointermove',tagOnMove,{passive:true});
     window.addEventListener('pointerup',tagOnUp);
     window.addEventListener('pointercancel',tagOnUp);
+    window.addEventListener('pointerdown',ovlOnDown);
+    window.addEventListener('pointermove',ovlOnMove,{passive:true});
+    window.addEventListener('pointerup',ovlOnUp);
+    window.addEventListener('pointercancel',ovlOnUp);
     setInterval(function(){
       if($('#login').classList.contains('show')||$('#dash').classList.contains('show')) return;
       if($('#tag').classList.contains('show')){ renderTagFoot(); return; }
