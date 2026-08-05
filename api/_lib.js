@@ -16,6 +16,7 @@
 var crypto = require('crypto');
 
 var PHOTO_KEY = function (id) { return 'eatminot:photo:' + id; };
+var PICK_PHOTO_KEY = function (id, i) { return 'eatminot:photo:' + id + ':pick' + i; };
 var rKey = function (id) { return 'eatminot:r:' + id; };
 var vKey = function (id) { return 'eatminot:v:' + id; };
 var ZERO_VOTES = { upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0 };
@@ -120,7 +121,7 @@ function seedProfile(id) {
     id: id, name: name, address: row[1], hours: row[2],
     claimed: claimed, paid: claimed, password: hashPw(defaultPassword(name)),
     stripeCustomerId: null, stripeSubscriptionId: null,
-    hasPhoto: false,
+    hasPhoto: false, hasPickPhoto: [false, false, false],
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
     note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
     website: claimed ? 'starvingrooster.com' : '',
@@ -175,10 +176,16 @@ function flatToObj(flat, base) {
 }
 
 /* ---------- profile (per-restaurant, read-modify-write) ---------- */
+// Fields added after a restaurant profile was first written won't exist on records
+// already saved — normalize so older data can't crash a read that expects them.
+function normalizeProfile(p) {
+  if (!Array.isArray(p.hasPickPhoto) || p.hasPickPhoto.length !== 3) p.hasPickPhoto = [false, false, false];
+  return p;
+}
 async function getProfile(id) {
   id = parseInt(id, 10);
   var raw = await kvGet(rKey(id));
-  if (raw) { try { return JSON.parse(raw); } catch (e) { /* fall through to reseed */ } }
+  if (raw) { try { return normalizeProfile(JSON.parse(raw)); } catch (e) { /* fall through to reseed */ } }
   var def = seedProfile(id);
   if (!def) return null;
   await kvSet(rKey(id), JSON.stringify(def));
@@ -244,7 +251,7 @@ async function getAllRestaurants() {
   for (var j = 0; j < ids.length; j++) {
     var profRaw = results[j * 2], votesFlat = results[j * 2 + 1];
     var profile = null;
-    if (profRaw) { try { profile = JSON.parse(profRaw); } catch (e) {} }
+    if (profRaw) { try { profile = normalizeProfile(JSON.parse(profRaw)); } catch (e) {} }
     if (!profile) { profile = seedProfile(ids[j]); toSeed.push(profile); }
     out2.push(mergeProfileVotes(profile, flatToObj(votesFlat, ZERO_VOTES)));
   }
@@ -258,6 +265,7 @@ async function resetAll() {
     await saveProfile(ids[i], seedProfile(ids[i]));
     await kvDel(vKey(ids[i]));
     await kvDel(PHOTO_KEY(ids[i]));
+    for (var p = 0; p < 3; p++) await kvDel(PICK_PHOTO_KEY(ids[i], p));
   }
 }
 
@@ -323,7 +331,7 @@ var ADMIN_DEFAULT = 'minot-admin';
 function checkAdmin(pw) { return pw === (process.env.EAT_ADMIN_PASSWORD || ADMIN_DEFAULT); }
 
 module.exports = {
-  PHOTO_KEY: PHOTO_KEY,
+  PHOTO_KEY: PHOTO_KEY, PICK_PHOTO_KEY: PICK_PHOTO_KEY,
   seedIds: seedIds, seedProfile: seedProfile, slug: slug, defaultPassword: defaultPassword,
   hashPw: hashPw, verifyPw: verifyPw, isDefaultPw: isDefaultPw,
   signToken: signToken, verifyToken: verifyToken,

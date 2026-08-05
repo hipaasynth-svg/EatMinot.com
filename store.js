@@ -71,6 +71,7 @@
         id: id, name: name, address: row[1], hours: row[2],
         claimed: claimed, paid: claimed, password: defaultPassword(name),
         photo: null, hasPhoto: false,
+        pickPhotos: [null, null, null], hasPickPhoto: [false, false, false],
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
         picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
         note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
@@ -124,6 +125,11 @@
   function loadLocal() {
     var data; try { data = JSON.parse(global.localStorage.getItem(LKEY)); } catch (e) { data = null; }
     if (!data || !Array.isArray(data.restaurants) || !data.restaurants.length) { data = { restaurants: seedList() }; saveLocal(data); }
+    // Forward-fill fields added after a browser already cached older local data.
+    data.restaurants.forEach(function (r) {
+      if (!Array.isArray(r.pickPhotos) || r.pickPhotos.length !== 3) r.pickPhotos = [null, null, null];
+      if (!Array.isArray(r.hasPickPhoto) || r.hasPickPhoto.length !== 3) r.hasPickPhoto = [false, false, false];
+    });
     data.restaurants.forEach(withRating);
     return data;
   }
@@ -192,6 +198,21 @@
   }
   function clearPhoto(id) { delete photoCache[id]; }
 
+  var pickPhotoCache = {}; // "id:i" -> dataURL | null | undefined(unfetched)
+  function getPickPhoto(id, i) {
+    var k = id + ':' + i;
+    if (pickPhotoCache[k] !== undefined) return Promise.resolve(pickPhotoCache[k]);
+    if (mode === 'server') {
+      var r = get(id);
+      if (r && r.hasPickPhoto && !r.hasPickPhoto[i]) { pickPhotoCache[k] = null; return Promise.resolve(null); }
+      return api('photo?id=' + id + '&pick=' + i).then(function (res) { pickPhotoCache[k] = (res.ok && res.data.photo) || null; return pickPhotoCache[k]; }).catch(function () { return null; });
+    }
+    var lr = localFind(loadLocal(), id);
+    pickPhotoCache[k] = (lr && lr.pickPhotos && lr.pickPhotos[i]) || null;
+    return Promise.resolve(pickPhotoCache[k]);
+  }
+  function clearPickPhoto(id, i) { delete pickPhotoCache[id + ':' + i]; }
+
   /* ---------- rating (public, shared) + punch (per-device) ---------- */
   function rate(id, stars, upvote) {
     if (ratedRecently(id)) return Promise.resolve({ ok: false, reason: 'rate_limited' });
@@ -243,6 +264,18 @@
     lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = d.restaurants.map(withRating);
     return Promise.resolve({ ok: ok });
   }
+  function ownerPickPhoto(id, pw, i, dataUrl) {
+    clearPickPhoto(id, i);
+    if (mode === 'server') return api('owner', 'POST', { action: 'photo', id: id, pick: i, token: ownerTok[id], password: pw, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    var d = loadLocal(), lr = localFind(d, id);
+    if (!lr || pw !== lr.password) return Promise.resolve({ ok: false });
+    if (!lr.paid) return Promise.resolve({ ok: false });
+    if (!lr.pickPhotos) lr.pickPhotos = [null, null, null];
+    if (!lr.hasPickPhoto) lr.hasPickPhoto = [false, false, false];
+    lr.pickPhotos[i] = dataUrl; lr.hasPickPhoto[i] = true;
+    var ok2 = saveLocal(d); cache = d.restaurants.map(withRating);
+    return Promise.resolve({ ok: ok2 });
+  }
 
   /* ---------- billing (Stripe) ---------- */
   function checkout(id, pw) {
@@ -276,6 +309,25 @@
     var d = loadLocal(), lr = localFind(d, id); if (lr) { lr.photo = null; lr.hasPhoto = false; saveLocal(d); cache = d.restaurants.map(withRating); }
     return Promise.resolve({ ok: true });
   }
+  function adminPickPhoto(pw, id, i, dataUrl) {
+    clearPickPhoto(id, i);
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'photo', id: id, pick: i, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
+    var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
+    if (!lr.pickPhotos) lr.pickPhotos = [null, null, null];
+    if (!lr.hasPickPhoto) lr.hasPickPhoto = [false, false, false];
+    lr.pickPhotos[i] = dataUrl; lr.hasPickPhoto[i] = true;
+    var ok3 = saveLocal(d); cache = d.restaurants.map(withRating);
+    return Promise.resolve({ ok: ok3 });
+  }
+  function adminRemovePickPhoto(pw, id, i) {
+    clearPickPhoto(id, i);
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'removePhoto', id: id, pick: i }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
+    var d = loadLocal(), lr = localFind(d, id);
+    if (lr) { if (!lr.pickPhotos) lr.pickPhotos=[null,null,null]; if(!lr.hasPickPhoto) lr.hasPickPhoto=[false,false,false]; lr.pickPhotos[i]=null; lr.hasPickPhoto[i]=false; saveLocal(d); cache = d.restaurants.map(withRating); }
+    return Promise.resolve({ ok: true });
+  }
   function adminSetFlag(pw, id, flags) {
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
@@ -302,10 +354,13 @@
     RATE_WINDOW_MS: RATE_WINDOW_MS,
     init: init, refresh: refresh, mode: function () { return mode; }, isServer: function () { return mode === 'server'; },
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,
+    getPickPhoto: getPickPhoto, clearPickPhoto: clearPickPhoto,
     rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec,
-    ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto,
+    ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto, ownerPickPhoto: ownerPickPhoto,
     checkout: checkout, confirmUpgrade: confirmUpgrade,
-    adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto, adminSetFlag: adminSetFlag, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
+    adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto,
+    adminPickPhoto: adminPickPhoto, adminRemovePickPhoto: adminRemovePickPhoto,
+    adminSetFlag: adminSetFlag, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
     slug: slug, defaultPassword: defaultPassword, fmtNum: fmtNum, isHappyHourNow: isHappyHourNow, to12h: to12h, fileToDataUrl: fileToDataUrl
   };
 })(window);
