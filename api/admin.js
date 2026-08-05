@@ -37,14 +37,28 @@ module.exports = async function (req, res) {
 
     if (b.action === 'photo') {
       if (!/^data:image\//.test(b.dataUrl || '')) { L.json(res, 400, { error: 'not_image' }); return; }
-      await L.kvSet(L.PHOTO_KEY(profile.id), b.dataUrl);
-      await L.updateProfile(profile.id, function (r) { r.hasPhoto = true; });
+      if (b.pick != null) {
+        var pick1 = parseInt(b.pick, 10);
+        if (pick1 < 0 || pick1 > 2) { L.json(res, 400, { error: 'pick' }); return; }
+        await L.kvSet(L.PICK_PHOTO_KEY(profile.id, pick1), b.dataUrl);
+        await L.updateProfile(profile.id, function (r) { r.hasPickPhoto[pick1] = true; });
+      } else {
+        await L.kvSet(L.PHOTO_KEY(profile.id), b.dataUrl);
+        await L.updateProfile(profile.id, function (r) { r.hasPhoto = true; });
+      }
       L.json(res, 200, { ok: true });
       return;
     }
     if (b.action === 'removePhoto') {
-      await L.kvDel(L.PHOTO_KEY(profile.id));
-      await L.updateProfile(profile.id, function (r) { r.hasPhoto = false; });
+      if (b.pick != null) {
+        var pick2 = parseInt(b.pick, 10);
+        if (pick2 < 0 || pick2 > 2) { L.json(res, 400, { error: 'pick' }); return; }
+        await L.kvDel(L.PICK_PHOTO_KEY(profile.id, pick2));
+        await L.updateProfile(profile.id, function (r) { r.hasPickPhoto[pick2] = false; });
+      } else {
+        await L.kvDel(L.PHOTO_KEY(profile.id));
+        await L.updateProfile(profile.id, function (r) { r.hasPhoto = false; });
+      }
       L.json(res, 200, { ok: true });
       return;
     }

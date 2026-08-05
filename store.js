@@ -38,7 +38,7 @@
     ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Verify hours"],
     ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Verify hours"],
     ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Nite Train Pizza", "Minot, ND", "Verify hours"],
+    ["Nite Train Pizza", "515 20th Ave SE, Minot, ND 58701", "Verify hours"],
     ["Uncle Maddio's Pizza Joint", "3310 16th St SW, Minot, ND 58701", "Verify hours"],
     ["Taco Feliz", "1535 S Broadway, Minot, ND 58701", "Verify hours"],
     ["El Azteca", "2035 N Broadway, Minot, ND 58703", "Verify hours"],
@@ -54,7 +54,19 @@
     ["The Bunker Bar and Grill", "Old Ground Round location, Minot, ND", "Sun-Thu 11am-10pm, Fri-Sat 11am-11pm"],
     ["El Reparo Mexican Grill & Cantina", "1735 S Broadway, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun 11am-8pm"],
     ["Thaihot 2 / Thai Hot", "122 Main St S, Minot, ND 58701", "Mon-Sat ~11am-9/9:30pm (Sun often closed - verify)"],
-    ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)"]
+    ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)"],
+    ["Primo", "1505 N Broadway (Grand International), Minot, ND 58703", "Breakfast & dinner hours – verify (often closed Mon)"],
+    ["Paradiso Mexican Restaurant", "1445 S Broadway, Minot, ND 58701", "Verify hours"],
+    ["Joe's Italian Restaurant", "7 1st St SE, Minot, ND 58701", "Verify hours"],
+    ["Lucky Bowl", "122 Main St S, Minot, ND 58701", "Verify hours"],
+    ["Rocky's Burgers Franks & Fries", "623 N Broadway, Minot, ND 58703", "Verify hours"],
+    ["Fun On A Bun", "101 Main St S, Minot, ND 58701", "Verify hours"],
+    ["Poppa's Place", "510 Central Ave E, Minot, ND 58701", "Verify hours"],
+    ["10 North Main", "10 Main St N, Minot, ND 58703", "Verify hours"],
+    ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Verify hours"],
+    ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours"],
+    ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours"],
+    ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours"]
   ];
 
   function slug(n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); }
@@ -71,6 +83,7 @@
         id: id, name: name, address: row[1], hours: row[2],
         claimed: claimed, paid: claimed, password: defaultPassword(name),
         photo: null, hasPhoto: false,
+        pickPhotos: [null, null, null], hasPickPhoto: [false, false, false],
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
         picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
         note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
@@ -124,6 +137,11 @@
   function loadLocal() {
     var data; try { data = JSON.parse(global.localStorage.getItem(LKEY)); } catch (e) { data = null; }
     if (!data || !Array.isArray(data.restaurants) || !data.restaurants.length) { data = { restaurants: seedList() }; saveLocal(data); }
+    // Forward-fill fields added after a browser already cached older local data.
+    data.restaurants.forEach(function (r) {
+      if (!Array.isArray(r.pickPhotos) || r.pickPhotos.length !== 3) r.pickPhotos = [null, null, null];
+      if (!Array.isArray(r.hasPickPhoto) || r.hasPickPhoto.length !== 3) r.hasPickPhoto = [false, false, false];
+    });
     data.restaurants.forEach(withRating);
     return data;
   }
@@ -192,6 +210,21 @@
   }
   function clearPhoto(id) { delete photoCache[id]; }
 
+  var pickPhotoCache = {}; // "id:i" -> dataURL | null | undefined(unfetched)
+  function getPickPhoto(id, i) {
+    var k = id + ':' + i;
+    if (pickPhotoCache[k] !== undefined) return Promise.resolve(pickPhotoCache[k]);
+    if (mode === 'server') {
+      var r = get(id);
+      if (r && r.hasPickPhoto && !r.hasPickPhoto[i]) { pickPhotoCache[k] = null; return Promise.resolve(null); }
+      return api('photo?id=' + id + '&pick=' + i).then(function (res) { pickPhotoCache[k] = (res.ok && res.data.photo) || null; return pickPhotoCache[k]; }).catch(function () { return null; });
+    }
+    var lr = localFind(loadLocal(), id);
+    pickPhotoCache[k] = (lr && lr.pickPhotos && lr.pickPhotos[i]) || null;
+    return Promise.resolve(pickPhotoCache[k]);
+  }
+  function clearPickPhoto(id, i) { delete pickPhotoCache[id + ':' + i]; }
+
   /* ---------- rating (public, shared) + punch (per-device) ---------- */
   function rate(id, stars, upvote) {
     if (ratedRecently(id)) return Promise.resolve({ ok: false, reason: 'rate_limited' });
@@ -243,6 +276,18 @@
     lr.photo = dataUrl; lr.hasPhoto = true; var ok = saveLocal(d); cache = d.restaurants.map(withRating);
     return Promise.resolve({ ok: ok });
   }
+  function ownerPickPhoto(id, pw, i, dataUrl) {
+    clearPickPhoto(id, i);
+    if (mode === 'server') return api('owner', 'POST', { action: 'photo', id: id, pick: i, token: ownerTok[id], password: pw, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    var d = loadLocal(), lr = localFind(d, id);
+    if (!lr || pw !== lr.password) return Promise.resolve({ ok: false });
+    if (!lr.paid) return Promise.resolve({ ok: false });
+    if (!lr.pickPhotos) lr.pickPhotos = [null, null, null];
+    if (!lr.hasPickPhoto) lr.hasPickPhoto = [false, false, false];
+    lr.pickPhotos[i] = dataUrl; lr.hasPickPhoto[i] = true;
+    var ok2 = saveLocal(d); cache = d.restaurants.map(withRating);
+    return Promise.resolve({ ok: ok2 });
+  }
 
   /* ---------- billing (Stripe) ---------- */
   function checkout(id, pw) {
@@ -276,6 +321,25 @@
     var d = loadLocal(), lr = localFind(d, id); if (lr) { lr.photo = null; lr.hasPhoto = false; saveLocal(d); cache = d.restaurants.map(withRating); }
     return Promise.resolve({ ok: true });
   }
+  function adminPickPhoto(pw, id, i, dataUrl) {
+    clearPickPhoto(id, i);
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'photo', id: id, pick: i, dataUrl: dataUrl }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
+    var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
+    if (!lr.pickPhotos) lr.pickPhotos = [null, null, null];
+    if (!lr.hasPickPhoto) lr.hasPickPhoto = [false, false, false];
+    lr.pickPhotos[i] = dataUrl; lr.hasPickPhoto[i] = true;
+    var ok3 = saveLocal(d); cache = d.restaurants.map(withRating);
+    return Promise.resolve({ ok: ok3 });
+  }
+  function adminRemovePickPhoto(pw, id, i) {
+    clearPickPhoto(id, i);
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'removePhoto', id: id, pick: i }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
+    var d = loadLocal(), lr = localFind(d, id);
+    if (lr) { if (!lr.pickPhotos) lr.pickPhotos=[null,null,null]; if(!lr.hasPickPhoto) lr.hasPickPhoto=[false,false,false]; lr.pickPhotos[i]=null; lr.hasPickPhoto[i]=false; saveLocal(d); cache = d.restaurants.map(withRating); }
+    return Promise.resolve({ ok: true });
+  }
   function adminSetFlag(pw, id, flags) {
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
@@ -302,10 +366,13 @@
     RATE_WINDOW_MS: RATE_WINDOW_MS,
     init: init, refresh: refresh, mode: function () { return mode; }, isServer: function () { return mode === 'server'; },
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,
+    getPickPhoto: getPickPhoto, clearPickPhoto: clearPickPhoto,
     rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec,
-    ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto,
+    ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto, ownerPickPhoto: ownerPickPhoto,
     checkout: checkout, confirmUpgrade: confirmUpgrade,
-    adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto, adminSetFlag: adminSetFlag, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
+    adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto,
+    adminPickPhoto: adminPickPhoto, adminRemovePickPhoto: adminRemovePickPhoto,
+    adminSetFlag: adminSetFlag, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
     slug: slug, defaultPassword: defaultPassword, fmtNum: fmtNum, isHappyHourNow: isHappyHourNow, to12h: to12h, fileToDataUrl: fileToDataUrl
   };
 })(window);

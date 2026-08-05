@@ -19,13 +19,20 @@ per restaurant every 24 hours. No accounts, no email/text collection, no persona
 Open `index.html` for the customer experience; `admin.html` for the operator console.
 
 ### What works today
-- **NFC/QR tag landing** — a tag's URL (`/?r=<id>`, shown per-restaurant in the admin
-  console with a copy button) opens straight to that restaurant's page: no carousel, no
-  other cards. A bouncing **"Swipe up to rate"** prompt opens the rating overlay; once
-  rated it's replaced by a "✓ Rated" confirmation. "Browse all →" leaves for the normal app.
-- **Swipeable Rolodex** of 36 seeded Minot restaurants — smooth momentum drag with a
-  click-vibration on each turn (arrow keys / edge buttons on desktop). General browsing
-  still has its own "Tap to rate" button, independent of the tag flow above.
+- **Rating is tag-only.** There is no rating control anywhere in general browsing — the
+  only way to rate a restaurant is to tap its physical NFC tag or scan its QR code
+  (`/?r=<id>`, shown per-restaurant in the admin console with a copy button), which opens
+  straight to that restaurant's full detail page: no carousel, no other cards. A bouncing
+  **"Swipe up to rate"** prompt opens the rating overlay there; once rated it's replaced by
+  a "✓ Rated" confirmation. "Browse all →" leaves for the normal app. This enforces
+  "verified presence only" at the UI level, not just as a policy.
+- **Two views of each restaurant, split by purpose:**
+  - The **Rolodex** (home carousel, 39 seeded Minot restaurants) is a lean teaser —
+    name, hours, the happy-hour cue, and verified-rating count only. Smooth momentum
+    drag with a click-vibration on each turn (arrow keys / edge buttons on desktop).
+  - The **tag/QR detail page** carries everything else: address, the Restaurant's Choice
+    billboard, happy-hour special text, punch-card progress, and any earned coupon —
+    the page a tap or scan actually lands on.
 - **Two-tap rating** — thumbs-up then a star (left = lower, right = higher). Because
   there is **no thumbs-down**, a "Submit stars only — no upvote" option lets people
   rate quality after a bad experience without upvoting. Brief "PUNCHED" starburst on
@@ -140,3 +147,9 @@ Implemented with Stripe's REST API directly (no SDK): `api/checkout.js`,
 - **Domain**: add `eatminot.com` in the project's Domains tab and point DNS to Vercel.
 
 `Minot Eats.dc.html` is the earlier design-tool prototype, kept for reference.
+
+## Public repo — nothing sensitive lives here
+
+All secrets (`STRIPE_SECRET_KEY`, `EAT_SESSION_SECRET`, `EAT_ADMIN_PASSWORD`, the Upstash
+Redis credentials) are Vercel environment variables — never committed. There is nothing in
+this repository that needs to be private for the app itself to be secure.

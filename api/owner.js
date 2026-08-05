@@ -23,8 +23,15 @@ module.exports = async function (req, res) {
     if (b.action === 'photo') {
       if (!profile.paid) { L.json(res, 403, { error: 'not_paid' }); return; }
       if (!/^data:image\//.test(b.dataUrl || '')) { L.json(res, 400, { error: 'not_image' }); return; }
-      await L.kvSet(L.PHOTO_KEY(profile.id), b.dataUrl);
-      await L.updateProfile(profile.id, function (p) { p.hasPhoto = true; });
+      if (b.pick != null) {
+        var pick = parseInt(b.pick, 10);
+        if (pick < 0 || pick > 2) { L.json(res, 400, { error: 'pick' }); return; }
+        await L.kvSet(L.PICK_PHOTO_KEY(profile.id, pick), b.dataUrl);
+        await L.updateProfile(profile.id, function (p) { p.hasPickPhoto[pick] = true; });
+      } else {
+        await L.kvSet(L.PHOTO_KEY(profile.id), b.dataUrl);
+        await L.updateProfile(profile.id, function (p) { p.hasPhoto = true; });
+      }
       L.json(res, 200, { ok: true });
       return;
     }
