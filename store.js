@@ -13,6 +13,7 @@
   var DKEY = 'eatminot_device_v1';    // per-device punches/coupons/ratedAt
   var AKEY = 'eatminot_admin_v1';     // local-mode admin password
   var RATE_WINDOW_MS = 86400000;
+  var TAP_WINDOW_MS = 7200000;        // how long a real tag tap keeps the Rate button reachable (2h)
   var DEFAULT_ADMIN = 'minot-admin';
 
   var RAW = [
@@ -120,6 +121,23 @@
   function saveDevice(d) { try { global.localStorage.setItem(DKEY, JSON.stringify(d)); } catch (e) {} }
   function deviceRec(id) { var d = loadDevice(); return d.perRest[id] || { done: 0, total: 10, coupon: null, ratedAt: 0 }; }
   function ratedRecently(id) { var rec = deviceRec(id); return !!(rec.ratedAt && Date.now() - rec.ratedAt < RATE_WINDOW_MS); }
+  // Called only when a real tag tap lands (enterTagMode) — never from the Paid preview
+  // path — so the resumable "Rate now" pill stays gated on an actual physical visit.
+  function recordTap(id) {
+    var d = loadDevice(); var rec = d.perRest[id] || { done: 0, total: 10, coupon: null, ratedAt: 0 };
+    rec.tapAt = Date.now(); d.perRest[id] = rec; saveDevice(d);
+  }
+  // Most recent still-live tap (within TAP_WINDOW_MS) that hasn't already been rated.
+  function pendingTap() {
+    var d = loadDevice(), best = null;
+    for (var id in d.perRest) {
+      var rec = d.perRest[id];
+      if (!rec.tapAt || Date.now() - rec.tapAt >= TAP_WINDOW_MS) continue;
+      if (ratedRecently(id)) continue;
+      if (!best || rec.tapAt > best.tapAt) best = { id: parseInt(id, 10), tapAt: rec.tapAt };
+    }
+    return best;
+  }
   // Apply a completed rating to this device's punch card; returns the record.
   function punch(id, couponValidDays, reward) {
     var d = loadDevice(); var rec = d.perRest[id] || { done: 0, total: 10, coupon: null, ratedAt: 0 };
@@ -367,7 +385,7 @@
     init: init, refresh: refresh, mode: function () { return mode; }, isServer: function () { return mode === 'server'; },
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,
     getPickPhoto: getPickPhoto, clearPickPhoto: clearPickPhoto,
-    rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec,
+    rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec, recordTap: recordTap, pendingTap: pendingTap,
     ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto, ownerPickPhoto: ownerPickPhoto,
     checkout: checkout, confirmUpgrade: confirmUpgrade,
     adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto,
