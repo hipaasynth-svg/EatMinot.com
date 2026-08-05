@@ -38,7 +38,7 @@
     ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Verify hours"],
     ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Verify hours"],
     ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Verify hours"],
-    ["Nite Train Pizza", "Minot, ND", "Verify hours"],
+    ["Nite Train Pizza", "515 20th Ave SE, Minot, ND 58701", "Verify hours"],
     ["Uncle Maddio's Pizza Joint", "3310 16th St SW, Minot, ND 58701", "Verify hours"],
     ["Taco Feliz", "1535 S Broadway, Minot, ND 58701", "Verify hours"],
     ["El Azteca", "2035 N Broadway, Minot, ND 58703", "Verify hours"],
@@ -54,7 +54,19 @@
     ["The Bunker Bar and Grill", "Old Ground Round location, Minot, ND", "Sun-Thu 11am-10pm, Fri-Sat 11am-11pm"],
     ["El Reparo Mexican Grill & Cantina", "1735 S Broadway, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun 11am-8pm"],
     ["Thaihot 2 / Thai Hot", "122 Main St S, Minot, ND 58701", "Mon-Sat ~11am-9/9:30pm (Sun often closed - verify)"],
-    ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)"]
+    ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)"],
+    ["Primo", "1505 N Broadway (Grand International), Minot, ND 58703", "Breakfast & dinner hours – verify (often closed Mon)"],
+    ["Paradiso Mexican Restaurant", "1445 S Broadway, Minot, ND 58701", "Verify hours"],
+    ["Joe's Italian Restaurant", "7 1st St SE, Minot, ND 58701", "Verify hours"],
+    ["Lucky Bowl", "122 Main St S, Minot, ND 58701", "Verify hours"],
+    ["Rocky's Burgers Franks & Fries", "623 N Broadway, Minot, ND 58703", "Verify hours"],
+    ["Fun On A Bun", "101 Main St S, Minot, ND 58701", "Verify hours"],
+    ["Poppa's Place", "510 Central Ave E, Minot, ND 58701", "Verify hours"],
+    ["10 North Main", "10 Main St N, Minot, ND 58703", "Verify hours"],
+    ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Verify hours"],
+    ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours"],
+    ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours"],
+    ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours"]
   ];
 
   function slug(n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); }
