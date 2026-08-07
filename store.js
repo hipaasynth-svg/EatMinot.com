@@ -84,8 +84,13 @@
   // Produce the public display list: attach the cuisine category, compute the star average,
   // then GROUP by category (alphabetically) and ALPHABETIZE restaurants within each group.
   // Returns a fresh array so the caller's source list keeps its id order untouched.
+  // Venues pulled from the public list (no photo). Ids are the frozen RAW positions and are
+  // never reused, so surviving venues keep their id (and their server-stored photo). Filtered
+  // here — the single render choke point — so they vanish even for returning visitors whose
+  // localStorage was seeded with the full list before the removal.
+  var REMOVED = { 8: true, 29: true, 40: true, 45: true, 51: true };
   function decorateList(list) {
-    return list.map(function (r) {
+    return list.filter(function (r) { return !REMOVED[r.id]; }).map(function (r) {
       withRating(r);
       r.category = categoryOf(r.id);
       return r;
@@ -120,7 +125,7 @@
           ? { enabled: true, days: [0, 1, 2, 3, 4, 5, 6], start: '15:00', end: '17:00', special: 'Half-price apps' }
           : { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
       };
-    });
+    }).filter(function (r) { return !REMOVED[r.id]; });
   }
 
   /* ---------- time / display helpers ---------- */
