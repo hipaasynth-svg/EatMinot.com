@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
-    --paper: #FBF7F0; --card: #F2E8D9; --card-edge: #E6D6BE;
+    --paper: #ffffff; --card: #F4EBDD; --card-edge: #E6D6BE;
     --espresso: #3A2A20; --ink: #4A392E; --caramel: #B4762F; --caramel-deep: #8F5A1F;
     --stone: #7C7267; --sage: #5E7D53; --sage-soft: #EAF0E4; --sage-edge: #CBDBC0;
   }
@@ -90,7 +90,11 @@
   .footnote { margin-top: 12px; color: var(--stone); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; text-align: center; }
 
   @media (max-width: 560px) { .sheet { width: 100%; padding: 24px 20px; } .cols, .pricing, .founding ul { grid-template-columns: 1fr; } }
-  @media print { .sheet { width: 100%; min-height: 0; padding: 0.5in 0.6in; } }
+  @media print {
+    @page { size: letter; margin: 0.4in; }
+    html, body { background: #fff; }
+    .sheet { width: auto; min-height: 0; margin: 0; padding: 0; }
+  }
 </style>
 
 <div class="sheet">
