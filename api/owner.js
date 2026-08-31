@@ -43,6 +43,7 @@ module.exports = async function (req, res) {
         if (typeof f.note === 'string') r.note = f.note;
         if (typeof f.website === 'string') r.website = f.website;
         if (typeof f.reward === 'string') r.reward = f.reward;
+        if (f.punchesNeeded != null) r.punchesNeeded = L.clampPunches(f.punchesNeeded);
         if (f.couponValidDays != null) r.couponValidDays = Math.max(1, parseInt(f.couponValidDays, 10) || 1);
         if (f.happyHour && typeof f.happyHour === 'object') {
           var hh = f.happyHour;

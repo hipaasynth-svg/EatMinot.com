@@ -15,6 +15,9 @@
   var RATE_WINDOW_MS = 86400000;
   var TAP_WINDOW_MS = 7200000;        // how long a real tag tap keeps the Rate button reachable (2h)
   var DEFAULT_ADMIN = 'minot-admin';
+  var SEED_RATING = 4;                 // new/unrated listings show 4★ to start, until real ratings land
+  // Owners choose how many punches earn the reward, within these bounds.
+  var MIN_PUNCHES = 2, MAX_PUNCHES = 5, DEFAULT_PUNCHES = 5;
 
   // RAW order is FROZEN: each restaurant's id is its 1-based position here (see seedList),
   // and those ids are printed on the in-store NFC/QR tags (?r=<id>) and used as the key
@@ -103,6 +106,10 @@
 
   function slug(n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); }
   function defaultPassword(n) { return slug(n) + '26'; }
+  // Punches-needed is owner-settable but always kept within [MIN,MAX]; anything missing or
+  // out of range (including older data) falls back to the default.
+  function clampPunches(n) { n = parseInt(n, 10); return (n >= MIN_PUNCHES && n <= MAX_PUNCHES) ? n : DEFAULT_PUNCHES; }
+  function punchesFor(r) { return clampPunches(r && r.punchesNeeded); }
   function fmtNum(n) {
     n = Math.round(n || 0);
     if (n >= 1000) { var k = n / 1000; return (n >= 10000 ? Math.round(k) : Math.round(k * 10) / 10).toString().replace(/\.0$/, '') + 'k'; }
@@ -120,7 +127,7 @@
         picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
         note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
         website: claimed ? 'starvingrooster.com' : '',
-        reward: 'Free item on your 10th punch', couponValidDays: 14,
+        reward: 'Free item when your punch card is full', couponValidDays: 14, punchesNeeded: DEFAULT_PUNCHES,
         happyHour: claimed
           ? { enabled: true, days: [0, 1, 2, 3, 4, 5, 6], start: '15:00', end: '17:00', special: 'Half-price apps' }
           : { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
@@ -140,7 +147,7 @@
   }
   function to12h(t) { var m = toMin(t); if (m == null) return t || ''; var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? 'pm' : 'am', h12 = h % 12 || 12; return h12 + (mm ? ':' + (mm < 10 ? '0' + mm : mm) : '') + ap; }
 
-  function withRating(r) { r.rating = r.ratingCount ? Math.round((r.ratingSum / r.ratingCount) * 10) / 10 : 0; return r; }
+  function withRating(r) { r.rating = r.ratingCount ? Math.round((r.ratingSum / r.ratingCount) * 10) / 10 : SEED_RATING; return r; }
 
   /* ---------- device (per-browser, anonymous) ---------- */
   function loadDevice() {
@@ -169,12 +176,15 @@
     }
     return best;
   }
-  // Apply a completed rating to this device's punch card; returns the record.
-  function punch(id, couponValidDays, reward) {
-    var d = loadDevice(); var rec = d.perRest[id] || { done: 0, total: 10, coupon: null, ratedAt: 0 };
+  // Apply a completed rating to this device's punch card; returns the record. `total` is the
+  // restaurant's current punches-needed setting — the card fills to that, not a fixed 10.
+  function punch(id, couponValidDays, reward, total) {
+    total = clampPunches(total);
+    var d = loadDevice(); var rec = d.perRest[id] || { done: 0, total: total, coupon: null, ratedAt: 0 };
     rec.ratedAt = Date.now();
+    rec.total = total;
     var nd = rec.done + 1;
-    if (nd >= (rec.total || 10)) {
+    if (nd >= total) {
       rec.done = 0;
       var days = couponValidDays || 14;
       rec.coupon = { code: 'EAT-' + Math.random().toString(36).slice(2, 7).toUpperCase(), issuedAt: Date.now(), expiresAt: Date.now() + days * 86400000, reward: reward || 'Reward earned!' };
@@ -282,7 +292,7 @@
       return api('rate', 'POST', { id: id, stars: stars, upvote: upvote }).then(function (res) {
         if (!res.ok) return { ok: false, reason: (res.data && res.data.error) || 'error' };
         var c = get(id); if (c) { c.upvotes = res.data.upvotes; c.totalRatings = res.data.totalRatings; c.rating = res.data.rating; }
-        var rec = punch(id, r ? r.couponValidDays : 14, r ? r.reward : '');
+        var rec = punch(id, r ? r.couponValidDays : 14, r ? r.reward : '', punchesFor(r));
         return { ok: true, record: rec };
       });
     }
@@ -291,7 +301,7 @@
     if (!lr) return Promise.resolve({ ok: false, reason: 'not_found' });
     lr.totalRatings += 1; lr.ratingSum += stars; lr.ratingCount += 1; if (upvote) lr.upvotes += 1;
     saveLocal(d); cache = decorateList(d.restaurants);
-    var rec2 = punch(id, lr.couponValidDays, lr.reward);
+    var rec2 = punch(id, lr.couponValidDays, lr.reward, punchesFor(lr));
     return Promise.resolve({ ok: true, record: rec2 });
   }
 
@@ -309,6 +319,7 @@
     if (typeof fields.note === 'string') lr.note = fields.note;
     if (typeof fields.website === 'string') lr.website = fields.website;
     if (typeof fields.reward === 'string') lr.reward = fields.reward;
+    if (fields.punchesNeeded != null) lr.punchesNeeded = clampPunches(fields.punchesNeeded);
     if (fields.couponValidDays != null) lr.couponValidDays = Math.max(1, parseInt(fields.couponValidDays, 10) || 1);
     if (fields.happyHour) lr.happyHour = fields.happyHour;
     if (typeof fields.password === 'string' && fields.password.trim()) lr.password = fields.password.trim();
@@ -413,6 +424,8 @@
 
   global.EatStore = {
     RATE_WINDOW_MS: RATE_WINDOW_MS,
+    SEED_RATING: SEED_RATING, MIN_PUNCHES: MIN_PUNCHES, MAX_PUNCHES: MAX_PUNCHES, DEFAULT_PUNCHES: DEFAULT_PUNCHES,
+    clampPunches: clampPunches, punchesFor: punchesFor,
     init: init, refresh: refresh, mode: function () { return mode; }, isServer: function () { return mode === 'server'; },
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,
     getPickPhoto: getPickPhoto, clearPickPhoto: clearPickPhoto,
