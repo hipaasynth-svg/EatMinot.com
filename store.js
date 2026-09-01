@@ -192,7 +192,7 @@
       var days = couponValidDays || 14;
       rec.coupon = { code: 'EAT-' + Math.random().toString(36).slice(2, 7).toUpperCase(), issuedAt: Date.now(), expiresAt: Date.now() + days * 86400000, reward: reward || 'Reward earned!' };
     } else { rec.done = nd; }
-    d.perRest[id] = rec; saveDevice(d); deviceBackup(); return rec;
+    d.perRest[id] = rec; saveDevice(d); deviceBackup(); walletSync(id); return rec;
   }
 
   /* ---------- anonymous server backup of punches (keyed by the random deviceId) ----------
@@ -305,10 +305,13 @@
   }
 
   /* ---------- wallet passes (env-gated on the server) ---------- */
+  var walletGoogleOn = false;   // cached from walletCaps(); gates the auto-update-on-punch call
   // Which "Add to Wallet" buttons the server can issue right now.
   function walletCaps() {
     return api('pass', 'GET').then(function (res) {
-      return (res.ok && res.data) ? { google: !!res.data.google, apple: !!res.data.apple } : { google: false, apple: false };
+      var caps = (res.ok && res.data) ? { google: !!res.data.google, apple: !!res.data.apple } : { google: false, apple: false };
+      walletGoogleOn = caps.google;
+      return caps;
     }).catch(function () { return { google: false, apple: false }; });
   }
   // Create/refresh this device's card for a venue and get its Add-to-Wallet link.
@@ -317,6 +320,15 @@
     return api('pass', 'POST', { provider: provider, dev: d.deviceId, venueId: venueId, done: rec.done || 0, total: total })
       .then(function (res) { return (res.ok && res.data) ? res.data : { error: (res.data && res.data.error) || 'error' }; })
       .catch(function () { return { error: 'network' }; });
+  }
+  // Auto-update: after a punch, refresh the balance on the customer's Google Wallet card if
+  // they've added one. Fire-and-forget; the server no-ops when no pass exists, so this is
+  // cheap and never creates a card. Only runs when Google Wallet is actually configured.
+  function walletSync(venueId) {
+    if (mode !== 'server' || !walletGoogleOn) return;
+    var d = loadDevice(), rec = d.perRest[venueId];
+    if (!rec) return;
+    api('pass', 'POST', { provider: 'google', action: 'patch', dev: d.deviceId, venueId: venueId, done: rec.done || 0, total: rec.total || punchesFor(get(venueId)) }).catch(function () {});
   }
 
   function refresh() {
@@ -500,7 +512,7 @@
     getPickPhoto: getPickPhoto, clearPickPhoto: clearPickPhoto,
     rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec, recordTap: recordTap, pendingTap: pendingTap,
     deviceId: function () { return loadDevice().deviceId; }, deviceBackup: deviceBackup, deviceRestore: deviceRestore, adoptDevice: adoptDevice,
-    walletCaps: walletCaps, walletSave: walletSave,
+    walletCaps: walletCaps, walletSave: walletSave, walletSync: walletSync,
     ownerLogin: ownerLogin, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto, ownerPickPhoto: ownerPickPhoto,
     checkout: checkout, confirmUpgrade: confirmUpgrade,
     adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto,
