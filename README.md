@@ -39,6 +39,13 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   submit; one rating per device per restaurant / 24h.
 - **Punch card** — an owner-set number of punches (2–5) earns a restaurant-set reward,
   then it resets and issues a short redemption code with an expiry.
+- **Wallet passes + card backup** — progress lives per-device, but in shared mode it is
+  also mirrored to the backend under the device's random token (no name/email/account),
+  so a reload or wiped cache can restore it. Customers can **Add card to Google Wallet**;
+  the pass carries the punch balance and a QR that reopens the card (`?dev=<token>`), so a
+  new phone re-links to the same card. Google is env-gated (see below); Apple is wired
+  through and lights up once its certs are set. With no wallet env, the buttons simply
+  don't render and everything else works unchanged.
 - **Neon "Happy Hour Now"** indicator that switches on/off by the clock from the
   owner's schedule (day + start/end + special).
 - **Owner dashboard** (password-gated) — Restaurant's Choice billboard (top 3 picks),
@@ -94,6 +101,10 @@ Photos are stored under separate Redis keys and downscaled client-side to keep t
 - `POST /api/owner` `{action:'login'|'update'|'photo', id, password, …}` → owner controls
 - `POST /api/admin` `{password, action, …}` → photos, Claimed/Paid flags, list, reset
 - `GET  /api/photo?id=` → a restaurant's photo
+- `POST /api/device` `{action:'get'|'put', deviceId, perRest}` → anonymous punch-card backup
+  (keyed only by the random `dev_…` token; sanitized to punch/coupon fields; no identity)
+- `GET  /api/pass` → `{google, apple}` (which wallet buttons the server can issue)
+- `POST /api/pass` `{provider, dev, venueId, done, total}` → an Add-to-Wallet save link
 
 ## Owner auth (server-side)
 
@@ -140,6 +151,9 @@ Implemented with Stripe's REST API directly (no SDK): `api/checkout.js`,
 | `STRIPE_SECRET_KEY` | Live $59/mo Stripe checkout |
 | `STRIPE_WEBHOOK_SECRET` | Auto status sync (cancellations) |
 | `STRIPE_PRICE_ID` | Use a fixed Stripe Price instead of the inline $59/mo |
+| `GOOGLE_WALLET_ISSUER_ID` | Google Wallet punch-card passes (with the SA key below) |
+| `GOOGLE_WALLET_SA_JSON_BASE64` | Google service-account JSON key, base64-encoded |
+| `APPLE_PASS_TYPE_ID` / `APPLE_TEAM_ID` / `APPLE_PASS_CERT_P12_BASE64` / `APPLE_PASS_CERT_PASSWORD` / `APPLE_WWDR_CERT_BASE64` | Apple Wallet passes (all five required; button hidden until then) |
 
 ### Remaining for later
 - **Owner accounts by email** (magic-link / OAuth) would replace the per-restaurant password
