@@ -37,8 +37,8 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   there is **no thumbs-down**, a "Submit stars only — no upvote" option lets people
   rate quality after a bad experience without upvoting. Brief "PUNCHED" starburst on
   submit; one rating per device per restaurant / 24h.
-- **Punch card** — 10 punches = a restaurant-set reward, then it resets and issues a
-  short redemption code with an expiry.
+- **Punch card** — an owner-set number of punches (2–5) earns a restaurant-set reward,
+  then it resets and issues a short redemption code with an expiry.
 - **Neon "Happy Hour Now"** indicator that switches on/off by the clock from the
   owner's schedule (day + start/end + special).
 - **Owner dashboard** (password-gated) — Restaurant's Choice billboard (top 3 picks),

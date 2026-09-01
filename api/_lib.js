@@ -78,6 +78,14 @@ var RAW = [
 function slug(name) { return String(name).toLowerCase().replace(/[^a-z0-9]/g, ''); }
 function defaultPassword(name) { return slug(name) + '26'; }
 
+// New/unrated listings show this star average until real ratings arrive; kept in sync with
+// the client (store.js SEED_RATING) so the public page and the API agree.
+var SEED_RATING = 4;
+// Owner-settable punches-needed, always clamped to these bounds (mirrors store.js).
+var MIN_PUNCHES = 2, MAX_PUNCHES = 5, DEFAULT_PUNCHES = 5;
+function clampPunches(n) { n = parseInt(n, 10); return (n >= MIN_PUNCHES && n <= MAX_PUNCHES) ? n : DEFAULT_PUNCHES; }
+function seedRating(v) { var c = v && v.ratingCount ? v.ratingCount : 0; return c ? Math.round((v.ratingSum / c) * 10) / 10 : SEED_RATING; }
+
 /* ---------- password hashing (salted SHA-256, no plaintext at rest) ---------- */
 function hashPw(pw) {
   var salt = crypto.randomBytes(9).toString('hex');
@@ -143,7 +151,7 @@ function seedProfile(id) {
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
     note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
     website: claimed ? 'starvingrooster.com' : '',
-    reward: 'Free item on your 10th punch', couponValidDays: 14,
+    reward: 'Free item when your punch card is full', couponValidDays: 14, punchesNeeded: DEFAULT_PUNCHES,
     happyHour: claimed
       ? { enabled: true, days: [0, 1, 2, 3, 4, 5, 6], start: '15:00', end: '17:00', special: 'Half-price apps' }
       : { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
@@ -295,7 +303,7 @@ function publicView(list) {
     restaurants: list.map(function (r) {
       var o = {}; for (var k in r) o[k] = r[k];
       delete o.password;
-      o.rating = r.ratingCount ? Math.round((r.ratingSum / r.ratingCount) * 10) / 10 : 0;
+      o.rating = seedRating(r);
       return o;
     })
   };
@@ -352,6 +360,7 @@ function checkAdmin(pw) { return pw === (process.env.EAT_ADMIN_PASSWORD || ADMIN
 module.exports = {
   PHOTO_KEY: PHOTO_KEY, PICK_PHOTO_KEY: PICK_PHOTO_KEY,
   seedIds: seedIds, seedProfile: seedProfile, slug: slug, defaultPassword: defaultPassword,
+  SEED_RATING: SEED_RATING, clampPunches: clampPunches, seedRating: seedRating,
   hashPw: hashPw, verifyPw: verifyPw, isDefaultPw: isDefaultPw,
   signToken: signToken, verifyToken: verifyToken,
   persistent: persistent, hasKV: hasKV,
