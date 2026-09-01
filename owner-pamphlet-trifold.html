@@ -1,0 +1,286 @@
+<meta charset="utf-8">
+<title>EatMinot Owner Trifold</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --paper: #FBF7F0;
+    --card: #F2E8D9;
+    --card-edge: #E6D6BE;
+    --espresso: #3A2A20;
+    --ink: #4A392E;
+    --caramel: #B4762F;
+    --caramel-deep: #8F5A1F;
+    --stone: #7C7267;
+    --sage: #5E7D53;
+    --sage-soft: #EAF0E4;
+    --sage-edge: #CBDBC0;
+    --fold: #D9C7AA;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #221913; --card: #2E2219; --card-edge: #453324;
+      --espresso: #F3E7D6; --ink: #E4D5C3; --caramel: #D89547; --caramel-deep: #E9AC63;
+      --stone: #A99B8B; --sage: #93B285; --sage-soft: #26301F; --sage-edge: #3C4A32; --fold: #4A3826;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #221913; --card: #2E2219; --card-edge: #453324;
+    --espresso: #F3E7D6; --ink: #E4D5C3; --caramel: #D89547; --caramel-deep: #E9AC63;
+    --stone: #A99B8B; --sage: #93B285; --sage-soft: #26301F; --sage-edge: #3C4A32; --fold: #4A3826;
+  }
+
+  @page { size: 11in 8.5in; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #E4DDD1; }
+  body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: var(--ink); line-height: 1.4; -webkit-font-smoothing: antialiased;
+  }
+  .rounded { font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif; }
+
+  .sheet {
+    width: 11in; height: 8.5in;
+    margin: 22px auto;
+    background: var(--paper);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    box-shadow: 0 10px 40px rgba(58,42,32,0.18);
+    overflow: hidden;
+  }
+  .panel {
+    padding: 0.4in 0.34in;
+    border-right: 1.5px dashed var(--fold);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .panel:last-child { border-right: none; }
+  .foldtag {
+    position: absolute; top: 6px; right: 8px;
+    font-size: 7.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--stone); opacity: 0.6; font-weight: 700;
+  }
+
+  /* wordmark */
+  .wordmark { font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+  .wordmark .eat { color: var(--espresso); }
+  .wordmark .minot { color: var(--caramel); }
+  .wordmark .com { color: var(--stone); }
+
+  .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--caramel-deep); }
+  h2.ptitle {
+    font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color: var(--espresso); font-size: 15px; font-weight: 800; letter-spacing: 0.02em;
+    text-transform: uppercase; margin: 0 0 12px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--card-edge);
+  }
+
+  /* ===== FRONT COVER ===== */
+  .cover { justify-content: space-between; align-items: center; text-align: center; }
+  .cover .top { width: 100%; }
+  .cover .wordmark { font-size: 30px; }
+  .cover .tag { color: var(--stone); font-weight: 700; letter-spacing: 0.08em; font-size: 12px; margin-top: 7px; }
+  .cover .hook {
+    font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color: var(--espresso); font-weight: 800; font-size: 21px; line-height: 1.16;
+    letter-spacing: -0.01em; text-wrap: balance; margin: 0;
+  }
+  .cover .forwho {
+    display: inline-block; background: var(--caramel); color: var(--paper);
+    font-weight: 800; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 999px;
+  }
+  .cover .trio { color: var(--caramel-deep); font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; }
+  .cover .url { font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif; color: var(--espresso); font-weight: 800; font-size: 15px; }
+
+  /* ===== BACK COVER ===== */
+  .back { justify-content: space-between; align-items: center; text-align: center; }
+  .back .wordmark { font-size: 20px; }
+  .back .call {
+    font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color: var(--espresso); font-weight: 800; font-size: 19px; line-height: 1.15; text-wrap: balance; margin: 0;
+  }
+  .back .contact { font-size: 13px; }
+  .back .contact a { color: var(--caramel-deep); font-weight: 700; text-decoration: none; }
+  .back .contact .site { color: var(--espresso); font-weight: 800; font-size: 14px; }
+  .back .foot {
+    color: var(--stone); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
+    border-top: 1.5px solid var(--card-edge); padding-top: 10px; width: 100%;
+  }
+
+  /* ===== Founding Five flap ===== */
+  .founding { background: var(--sage-soft); }
+  .founding .badge {
+    display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--paper); background: var(--sage); padding: 4px 10px; border-radius: 999px; align-self: flex-start;
+  }
+  .founding h2.ptitle { border-bottom-color: var(--sage-edge); }
+  .founding .lead { color: var(--espresso); font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif; font-weight: 800; font-size: 18px; line-height: 1.14; margin: 12px 0 4px; }
+  .founding .sub { font-size: 11.5px; color: var(--ink); margin: 0 0 12px; }
+  .founding ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+  .founding li { display: grid; grid-template-columns: 15px 1fr; gap: 8px; font-size: 12px; align-items: start; }
+  .founding li .tick { color: var(--sage); font-weight: 900; font-size: 13px; line-height: 1.25; }
+  .founding li b { color: var(--espresso); }
+
+  /* ===== Benefits ===== */
+  .benefits .list { display: grid; gap: 13px; }
+  .benefit h3 {
+    font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color: var(--espresso); font-size: 13.5px; font-weight: 800; margin: 0 0 3px; letter-spacing: -0.01em;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .benefit h3 .k { color: var(--caramel); font-size: 12px; font-weight: 900; }
+  .benefit p { margin: 0 0 0 20px; font-size: 11.5px; }
+
+  /* ===== Steps ===== */
+  .steps { display: grid; gap: 14px; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; }
+  .step .num {
+    font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif; font-weight: 800; font-size: 15px;
+    color: var(--paper); background: var(--caramel); width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center;
+  }
+  .step h3 { font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif; color: var(--espresso); font-size: 13.5px; font-weight: 800; margin: 4px 0 2px; }
+  .step p { margin: 0; font-size: 11.5px; }
+
+  /* ===== Pricing ===== */
+  .price-block { background: var(--card); border: 1px solid var(--card-edge); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .price-block h3 { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--caramel-deep); margin: 0 0 4px; font-weight: 800; }
+  .price-block .amount { font-family: ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif; color: var(--espresso); font-weight: 800; font-size: 27px; letter-spacing: -0.02em; }
+  .price-block .amount span { font-size: 13px; color: var(--stone); font-weight: 700; }
+  .price-block .amount.small { font-size: 19px; }
+  .price-block p { margin: 8px 0 0; font-size: 11.5px; }
+
+  .spacer { flex: 1; }
+
+  @media print {
+    html, body { background: #fff; }
+    .sheet { margin: 0; box-shadow: none; page-break-after: always; }
+    .foldtag { display: none; }
+  }
+</style>
+
+<!-- ===================== OUTSIDE ===================== -->
+<div class="sheet">
+
+  <!-- Panel: Founding Five (inner flap, folds in) -->
+  <section class="panel founding">
+    <span class="foldtag">Outside · inner flap</span>
+    <span class="badge">Only 5 spots · Minot first</span>
+    <div class="lead rounded">Become a Founding Five restaurant.</div>
+    <p class="sub">The first five restaurants in Minot help shape what EatMinot becomes — and get in before anyone else.</p>
+    <ul>
+      <li><span class="tick">✓</span><span><b>One trial month, on us.</b> Try the whole system with no monthly charge to start.</span></li>
+      <li><span class="tick">✓</span><span><b>Five NFC tags to begin</b> — simple, clean, ready for your tables.</span></li>
+      <li><span class="tick">✓</span><span><b>A direct hand in the roadmap.</b> Your feedback builds the features everyone else pays for later.</span></li>
+      <li><span class="tick">✓</span><span><b>Then the standard $59/month</b> — only if you love it. No obligation to continue.</span></li>
+    </ul>
+    <div class="spacer"></div>
+    <p style="font-size:10.5px;color:var(--stone);margin:0;">Ask about a founding spot: <b style="color:var(--espresso);">cody@eatminot.com</b></p>
+  </section>
+
+  <!-- Panel: Back cover -->
+  <section class="panel back">
+    <span class="foldtag">Outside · back</span>
+    <div class="wordmark rounded"><span class="eat">Eat</span><span class="minot">Minot</span><span class="com">.com</span></div>
+    <p class="call rounded">Claim a founding spot before they're gone.</p>
+    <div class="contact">
+      <div class="site rounded">EatMinot.com</div>
+      <div style="margin-top:4px;"><a href="mailto:cody@eatminot.com">cody@eatminot.com</a></div>
+    </div>
+    <div class="foot">Zero tracking · 100 percent local · Minot's Best directory</div>
+  </section>
+
+  <!-- Panel: FRONT COVER -->
+  <section class="panel cover">
+    <span class="foldtag">Outside · front cover</span>
+    <div class="top">
+      <div class="wordmark rounded"><span class="eat">Eat</span><span class="minot">Minot</span><span class="com">.com</span></div>
+      <div class="tag rounded">tap · rate · earn</div>
+    </div>
+    <p class="hook">Verified ratings from the locals who actually eat here.</p>
+    <div class="trio">No fake reviews · No apps · Zero tracking</div>
+    <div>
+      <div class="forwho">For Minot restaurant owners</div>
+      <div class="url rounded" style="margin-top:14px;">EatMinot.com</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===================== INSIDE ===================== -->
+<div class="sheet">
+
+  <!-- Panel: Why owners choose it -->
+  <section class="panel benefits">
+    <span class="foldtag">Inside · left</span>
+    <h2 class="ptitle">Why owners choose it</h2>
+    <div class="list">
+      <div class="benefit">
+        <h3><span class="k">01</span> No fake reviews, ever</h3>
+        <p>Rating requires a physical NFC tap or QR scan — one per phone per day. No out-of-towners, no competitors, no bots.</p>
+      </div>
+      <div class="benefit">
+        <h3><span class="k">02</span> Repeat customers, built in</h3>
+        <p>Every tap is a punch. Ten punches = a reward you choose. The card lives on their phone — nothing to print or lose.</p>
+      </div>
+      <div class="benefit">
+        <h3><span class="k">03</span> You control the spotlight</h3>
+        <p>A "Restaurant's Choice" billboard for your top picks, plus a Happy Hour that switches on by your own schedule.</p>
+      </div>
+      <div class="benefit">
+        <h3><span class="k">04</span> Customers actually use it</h3>
+        <p>No account, no email, no phone number, nothing to download. That's why diners tap instead of walking past.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Panel: How it works -->
+  <section class="panel">
+    <span class="foldtag">Inside · center</span>
+    <h2 class="ptitle">How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="num rounded">1</div>
+        <div>
+          <h3>We set your service tags</h3>
+          <p>NFC + QR tags placed on your tables and counter — ready to tap the day they arrive.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num rounded">2</div>
+        <div>
+          <h3>Diners tap, rate, earn</h3>
+          <p>A tap opens straight to your listing. They rate, collect a punch, and their verified rating posts instantly.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num rounded">3</div>
+        <div>
+          <h3>You run it from one dashboard</h3>
+          <p>A password-protected owner dashboard for your billboard, Happy Hour, reward, and profile — change it anytime.</p>
+        </div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <p style="font-size:11px;color:var(--stone);border-top:1.5px solid var(--card-edge);padding-top:10px;margin:0;">Verified word-of-mouth, made measurable and fair — <b style="color:var(--espresso);">for Minot, by Minot.</b></p>
+  </section>
+
+  <!-- Panel: Pricing -->
+  <section class="panel">
+    <span class="foldtag">Inside · right</span>
+    <h2 class="ptitle">Simple pricing</h2>
+    <div class="price-block">
+      <h3>Your service tags</h3>
+      <div class="amount rounded">$59<span>/month</span></div>
+      <p>Your NFC + QR tags, live listing, verified ratings, the built-in punch card, Happy Hour, and your owner dashboard. The whole working system.</p>
+    </div>
+    <div class="price-block">
+      <h3>Everything else</h3>
+      <div class="amount small rounded">Added on</div>
+      <p>Extra tags, more placements, and new features as you grow — added when <b>you</b> want them, never bundled in to pad the monthly price.</p>
+    </div>
+    <div class="spacer"></div>
+    <p style="font-size:11.5px;color:var(--caramel-deep);font-weight:700;margin:0;">→ Founding Five get their first month free. See the flap.</p>
+  </section>
+
+</div>
