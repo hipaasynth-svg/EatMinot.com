@@ -120,7 +120,7 @@
       var id = i + 1, name = row[0], claimed = id === 1;
       return {
         id: id, name: name, address: row[1], hours: row[2],
-        claimed: claimed, paid: claimed, password: defaultPassword(name),
+        claimed: claimed, paid: claimed, featured: claimed, password: defaultPassword(name),
         photo: null, hasPhoto: false,
         pickPhotos: [null, null, null], hasPickPhoto: [false, false, false],
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
@@ -128,6 +128,7 @@
         note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
         website: claimed ? 'starvingrooster.com' : '',
         reward: 'Free item when your punch card is full', couponValidDays: 14, punchesNeeded: DEFAULT_PUNCHES,
+        offer: claimed ? 'Free appetizer with any two entrées — EatMinot locals only' : '',
         happyHour: claimed
           ? { enabled: true, days: [0, 1, 2, 3, 4, 5, 6], start: '15:00', end: '17:00', special: 'Half-price apps' }
           : { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
@@ -412,6 +413,7 @@
     if (typeof fields.note === 'string') lr.note = fields.note;
     if (typeof fields.website === 'string') lr.website = fields.website;
     if (typeof fields.reward === 'string') lr.reward = fields.reward;
+    if (typeof fields.offer === 'string') lr.offer = fields.offer.slice(0, 90);
     if (fields.punchesNeeded != null) lr.punchesNeeded = clampPunches(fields.punchesNeeded);
     if (fields.couponValidDays != null) lr.couponValidDays = Math.max(1, parseInt(fields.couponValidDays, 10) || 1);
     if (fields.happyHour) lr.happyHour = fields.happyHour;
@@ -494,11 +496,12 @@
     return Promise.resolve({ ok: true });
   }
   function adminSetFlag(pw, id, flags) {
-    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid, featured: flags.featured }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
-    if (typeof flags.claimed === 'boolean') { lr.claimed = flags.claimed; if (!lr.claimed) lr.paid = false; }
+    if (typeof flags.claimed === 'boolean') { lr.claimed = flags.claimed; if (!lr.claimed) { lr.paid = false; lr.featured = false; } }
     if (typeof flags.paid === 'boolean') { lr.paid = flags.paid; if (lr.paid) lr.claimed = true; }
+    if (typeof flags.featured === 'boolean') { lr.featured = flags.featured; if (lr.featured) lr.claimed = true; }
     saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
   }
   function adminResetPassword(pw, id) {
