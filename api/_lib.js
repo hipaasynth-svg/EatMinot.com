@@ -145,7 +145,7 @@ function seedProfile(id) {
   var name = row[0], claimed = id === 1; // one demo paid listing so the paid features are visible
   return {
     id: id, name: name, address: row[1], hours: row[2],
-    claimed: claimed, paid: claimed, featured: claimed, password: hashPw(defaultPassword(name)),
+    claimed: claimed, paid: claimed, featured: claimed, hidden: false, password: hashPw(defaultPassword(name)),
     stripeCustomerId: null, stripeSubscriptionId: null,
     hasPhoto: false, hasPickPhoto: [false, false, false],
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
@@ -208,6 +208,7 @@ function flatToObj(flat, base) {
 function normalizeProfile(p) {
   if (!Array.isArray(p.hasPickPhoto) || p.hasPickPhoto.length !== 3) p.hasPickPhoto = [false, false, false];
   if (typeof p.featured !== 'boolean') p.featured = false;
+  if (typeof p.hidden !== 'boolean') p.hidden = false;
   if (typeof p.offer !== 'string') p.offer = '';
   return p;
 }
@@ -303,7 +304,7 @@ async function resetAll() {
 function publicView(list) {
   return {
     persistent: persistent(),
-    restaurants: list.map(function (r) {
+    restaurants: list.filter(function (r) { return !r.hidden; }).map(function (r) {
       var o = {}; for (var k in r) o[k] = r[k];
       delete o.password;
       o.rating = avgRating(r);

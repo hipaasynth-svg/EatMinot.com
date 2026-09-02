@@ -53,7 +53,9 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   password" line points owners to `cody@eatminot.com`.
 - **Paid gate** — changing the photo and publishing the billboard require the $59/mo
   tier; free claimed owners can edit the rest.
-- **Admin console** — upload a photo for any restaurant, toggle Claimed/Paid, view/hand
+- **Admin console** — upload a photo for any restaurant, toggle Claimed/Paid, add to
+  "Minot's Most Wanted", **hide/show a restaurant** (pulls it from the public list, tag
+  page, Most Wanted and rating while keeping it in the admin panel to restore), view/hand
   out owner passwords (or reset one to default), copy each restaurant's tag URL, reset
   demo data. No admin action writes to a vote counter — those only move via a real rating.
 
