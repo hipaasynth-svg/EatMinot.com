@@ -75,7 +75,8 @@
     ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Verify hours", "Asian"],
     ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours", "Pizza"],
     ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours", "Pizza"],
-    ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours", "Pizza"]
+    ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours", "Pizza"],
+    ["The Wurst Case Scenario", "North Hill, Minot, ND", "Verify hours", "American"]
   ];
   var DEFAULT_CATEGORY = 'Other';
   // Category for a given restaurant id, read straight from the frozen RAW table so it
