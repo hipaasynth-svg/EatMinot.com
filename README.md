@@ -160,8 +160,6 @@ Implemented with Stripe's REST API directly (no SDK): `api/checkout.js`,
   entirely — a further step needing an email or auth provider.
 - **Domain**: add `eatminot.com` in the project's Domains tab and point DNS to Vercel.
 
-`Minot Eats.dc.html` is the earlier design-tool prototype, kept for reference.
-
 ## Public repo — nothing sensitive lives here
 
 All secrets (`STRIPE_SECRET_KEY`, `EAT_SESSION_SECRET`, `EAT_ADMIN_PASSWORD`, the Upstash
