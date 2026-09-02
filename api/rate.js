@@ -19,7 +19,7 @@ module.exports = async function (req, res) {
     });
     L.json(res, 200, {
       id: profile.id, upvotes: votes.upvotes, totalRatings: votes.totalRatings,
-      rating: L.seedRating(votes)
+      rating: L.avgRating(votes)
     });
   } catch (e) {
     L.json(res, 500, { error: 'rate_failed' });
