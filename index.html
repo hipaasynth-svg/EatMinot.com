@@ -45,6 +45,7 @@
   .stats b{font-size:40px;font-weight:800;color:rgba(255,255,255,.92);letter-spacing:-.02em;line-height:1}
   .stats s{font-size:13px;font-weight:700;color:rgba(255,255,255,.85);text-decoration:none}
   .starsrow{position:absolute;right:14px;bottom:16px;display:flex;gap:2px;pointer-events:none}
+  .newrate{position:absolute;right:14px;bottom:14px;font-size:11px;font-weight:800;color:rgba(255,255,255,.96);background:rgba(0,0,0,.30);padding:4px 9px;border-radius:20px;pointer-events:none;letter-spacing:.2px}
   .badge-claim{position:absolute;left:14px;top:12px;background:rgba(28,25,23,.72);color:#fff;font-size:11px;font-weight:800;letter-spacing:.02em;padding:5px 9px;border-radius:20px}
   .neon{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:6px;
     background:rgba(10,10,12,.62);border:1px solid #39FF14;border-radius:20px;padding:5px 10px;
@@ -280,6 +281,11 @@
     for(var i=0;i<5;i++){ var f=i<Math.round(rating)?'rgba(255,255,255,.95)':'rgba(255,255,255,.35)'; out+='<svg width="'+size+'" height="'+size+'" viewBox="0 0 20 20" style="opacity:.9"><path d="'+STAR+'" fill="'+f+'"></path></svg>'; }
     return out;
   }
+  // Show a star average only once a venue has enough real reviews; below that, a "New" pill.
+  function ratingRow(r,size){
+    return S.isRated(r) ? '<div class="starsrow">'+starsSvg(r.rating,size)+'</div>'
+                        : '<div class="newrate">✨ New — be the first to rate</div>';
+  }
 
   // Lean Rolodex teaser — name, hours, happy-hour cue, and ratings only. Everything
   // else (address, billboard, punch progress, coupon) lives on that restaurant's
@@ -302,7 +308,7 @@
     var tapHint = r.paid ? '<div class="tapHint">Tap to see all picks →</div>' : '';
     return '<div class="hero" data-hero="'+r.id+'">'+
         '<div class="stats"><b>'+S.fmtNum(r.upvotes)+'</b><s>upvotes</s></div>'+
-        '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
+        ratingRow(r,18)+claim+neon+
       '</div>'+
       '<div class="body lean">'+
         '<div>'+(r.category?'<div class="cat">'+esc(r.category)+'</div>':'')+'<div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.hours)+'</div></div>'+
@@ -335,7 +341,7 @@
 
     return '<div class="hero" data-hero="'+r.id+'">'+
         '<div class="stats"><b>'+S.fmtNum(r.upvotes)+'</b><s>upvotes</s></div>'+
-        '<div class="starsrow">'+starsSvg(r.rating,18)+'</div>'+claim+neon+
+        ratingRow(r,18)+claim+neon+
       '</div>'+
       '<div class="body full">'+
         '<div>'+(r.category?'<div class="cat">'+esc(r.category)+'</div>':'')+'<div class="title">'+esc(r.name)+'</div><div class="meta">'+esc(r.address)+' · '+esc(r.hours)+'</div></div>'+

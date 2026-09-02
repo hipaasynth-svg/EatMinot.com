@@ -15,7 +15,7 @@
   var RATE_WINDOW_MS = 86400000;
   var TAP_WINDOW_MS = 7200000;        // how long a real tag tap keeps the Rate button reachable (2h)
   var DEFAULT_ADMIN = 'minot-admin';
-  var SEED_RATING = 4;                 // new/unrated listings show 4★ to start, until real ratings land
+  var MIN_RATINGS = 3;                 // real (tap/QR-verified) reviews needed before a star average shows
   // Owners choose how many punches earn the reward, within these bounds.
   var MIN_PUNCHES = 2, MAX_PUNCHES = 5, DEFAULT_PUNCHES = 5;
 
@@ -148,7 +148,10 @@
   }
   function to12h(t) { var m = toMin(t); if (m == null) return t || ''; var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? 'pm' : 'am', h12 = h % 12 || 12; return h12 + (mm ? ':' + (mm < 10 ? '0' + mm : mm) : '') + ap; }
 
-  function withRating(r) { r.rating = r.ratingCount ? Math.round((r.ratingSum / r.ratingCount) * 10) / 10 : SEED_RATING; return r; }
+  function withRating(r) { r.rating = r.ratingCount ? Math.round((r.ratingSum / r.ratingCount) * 10) / 10 : 0; return r; }
+  // A star average is only shown once a venue has enough real reviews; below the threshold
+  // the UI shows "New to EatMinot" instead of a number. Uses the verified rating count.
+  function isRated(r) { return !!(r && ((r.totalRatings || r.ratingCount || 0) >= MIN_RATINGS)); }
 
   /* ---------- device (per-browser, anonymous) ---------- */
   function loadDevice() {
@@ -520,7 +523,7 @@
 
   global.EatStore = {
     RATE_WINDOW_MS: RATE_WINDOW_MS,
-    SEED_RATING: SEED_RATING, MIN_PUNCHES: MIN_PUNCHES, MAX_PUNCHES: MAX_PUNCHES, DEFAULT_PUNCHES: DEFAULT_PUNCHES,
+    MIN_RATINGS: MIN_RATINGS, isRated: isRated, MIN_PUNCHES: MIN_PUNCHES, MAX_PUNCHES: MAX_PUNCHES, DEFAULT_PUNCHES: DEFAULT_PUNCHES,
     clampPunches: clampPunches, punchesFor: punchesFor,
     init: init, refresh: refresh, mode: function () { return mode; }, isServer: function () { return mode === 'server'; },
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,

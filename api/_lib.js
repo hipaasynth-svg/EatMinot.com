@@ -78,13 +78,12 @@ var RAW = [
 function slug(name) { return String(name).toLowerCase().replace(/[^a-z0-9]/g, ''); }
 function defaultPassword(name) { return slug(name) + '26'; }
 
-// New/unrated listings show this star average until real ratings arrive; kept in sync with
-// the client (store.js SEED_RATING) so the public page and the API agree.
-var SEED_RATING = 4;
+// Real star average (0 when there are no ratings). The client only *shows* it once a venue
+// has MIN_RATINGS verified reviews — see store.js isRated — otherwise it shows "New to EatMinot".
+function avgRating(v) { var c = v && v.ratingCount ? v.ratingCount : 0; return c ? Math.round((v.ratingSum / c) * 10) / 10 : 0; }
 // Owner-settable punches-needed, always clamped to these bounds (mirrors store.js).
 var MIN_PUNCHES = 2, MAX_PUNCHES = 5, DEFAULT_PUNCHES = 5;
 function clampPunches(n) { n = parseInt(n, 10); return (n >= MIN_PUNCHES && n <= MAX_PUNCHES) ? n : DEFAULT_PUNCHES; }
-function seedRating(v) { var c = v && v.ratingCount ? v.ratingCount : 0; return c ? Math.round((v.ratingSum / c) * 10) / 10 : SEED_RATING; }
 
 /* ---------- password hashing (salted SHA-256, no plaintext at rest) ---------- */
 function hashPw(pw) {
@@ -306,7 +305,7 @@ function publicView(list) {
     restaurants: list.map(function (r) {
       var o = {}; for (var k in r) o[k] = r[k];
       delete o.password;
-      o.rating = seedRating(r);
+      o.rating = avgRating(r);
       return o;
     })
   };
@@ -363,7 +362,7 @@ function checkAdmin(pw) { return pw === (process.env.EAT_ADMIN_PASSWORD || ADMIN
 module.exports = {
   PHOTO_KEY: PHOTO_KEY, PICK_PHOTO_KEY: PICK_PHOTO_KEY,
   seedIds: seedIds, seedProfile: seedProfile, slug: slug, defaultPassword: defaultPassword,
-  SEED_RATING: SEED_RATING, clampPunches: clampPunches, seedRating: seedRating,
+  clampPunches: clampPunches, avgRating: avgRating,
   hashPw: hashPw, verifyPw: verifyPw, isDefaultPw: isDefaultPw,
   signToken: signToken, verifyToken: verifyToken,
   persistent: persistent, hasKV: hasKV,

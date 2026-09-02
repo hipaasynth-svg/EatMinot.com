@@ -40,6 +40,7 @@
   .stars{display:inline-flex;gap:1px}
   .stars svg{width:14px;height:14px}
   .rc{font-size:11px;font-weight:700;color:var(--muted)}
+  .newrate{font-size:11.5px;font-weight:800;color:var(--amber)}
   .spot{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:var(--amber);padding:3px 8px;border-radius:20px;position:absolute;top:12px;right:12px}
   .hh{display:inline-block;font-size:10px;font-weight:800;color:var(--ember-d);background:#FBEADF;border:1px solid #F2CDB9;padding:2px 7px;border-radius:20px}
   .cta{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--accent);margin-top:2px}
@@ -94,7 +95,7 @@
           (r.category?'<div class="cat">'+esc(r.category)+'</div>':'')+
           '<div class="nm">'+esc(r.name)+'</div>'+
           '<div class="meta">'+esc(r.address)+'</div>'+
-          '<div class="rowb">'+starsSvg(r.rating)+'<span class="rc">'+(r.totalRatings||0)+' ratings</span>'+hh+'</div>'+
+          '<div class="rowb">'+(S.isRated(r)?starsSvg(r.rating)+'<span class="rc">'+(r.totalRatings||0)+' ratings</span>':'<span class="newrate">✨ New — be the first to rate</span>')+hh+'</div>'+
           '<div class="cta">See page &amp; rate →</div>'+
         '</div>'+
       '</div>'+offer;
