@@ -94,7 +94,7 @@
   // localStorage was seeded with the full list before the removal.
   var REMOVED = { 8: true, 29: true, 40: true, 45: true, 51: true };
   function decorateList(list) {
-    return list.filter(function (r) { return !REMOVED[r.id]; }).map(function (r) {
+    return list.filter(function (r) { return !REMOVED[r.id] && !r.hidden; }).map(function (r) {
       withRating(r);
       r.category = categoryOf(r.id);
       return r;
@@ -121,7 +121,7 @@
       var id = i + 1, name = row[0], claimed = id === 1;
       return {
         id: id, name: name, address: row[1], hours: row[2],
-        claimed: claimed, paid: claimed, featured: claimed, password: defaultPassword(name),
+        claimed: claimed, paid: claimed, featured: claimed, hidden: false, password: defaultPassword(name),
         photo: null, hasPhoto: false,
         pickPhotos: [null, null, null], hasPickPhoto: [false, false, false],
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
@@ -500,12 +500,13 @@
     return Promise.resolve({ ok: true });
   }
   function adminSetFlag(pw, id, flags) {
-    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid, featured: flags.featured }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid, featured: flags.featured, hidden: flags.hidden }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
     if (typeof flags.claimed === 'boolean') { lr.claimed = flags.claimed; if (!lr.claimed) { lr.paid = false; lr.featured = false; } }
     if (typeof flags.paid === 'boolean') { lr.paid = flags.paid; if (lr.paid) lr.claimed = true; }
     if (typeof flags.featured === 'boolean') { lr.featured = flags.featured; if (lr.featured) lr.claimed = true; }
+    if (typeof flags.hidden === 'boolean') { lr.hidden = flags.hidden; }
     saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
   }
   function adminResetPassword(pw, id) {

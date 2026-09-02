@@ -13,7 +13,7 @@ module.exports = async function (req, res) {
     if (!stars) { L.json(res, 400, { error: 'stars' }); return; }
     var upvote = !!b.upvote;
     var profile = await L.getProfile(b.id);
-    if (!profile) { L.json(res, 404, { error: 'not_found' }); return; }
+    if (!profile || profile.hidden) { L.json(res, 404, { error: 'not_found' }); return; }
     var votes = await L.incrementVotes(profile.id, {
       totalRatings: 1, ratingCount: 1, ratingSum: stars, upvotes: upvote ? 1 : 0
     });
