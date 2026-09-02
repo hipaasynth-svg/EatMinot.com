@@ -73,7 +73,7 @@ var RAW = [
   ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours"],
   ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours"],
   ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours"],
-  ["The Wurst Case Scenario", "North Hill, Minot, ND", "Verify hours"]
+  ["The Wurst Case Scenario", "1901 N Broadway, Minot, ND 58703", "Tue-Thu 11am-9pm, Fri 11am-11pm, Sat 12pm-11pm, Sun-Mon Closed"]
 ];
 
 function slug(name) { return String(name).toLowerCase().replace(/[^a-z0-9]/g, ''); }

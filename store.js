@@ -76,7 +76,7 @@
     ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours", "Pizza"],
     ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours", "Pizza"],
     ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours", "Pizza"],
-    ["The Wurst Case Scenario", "North Hill, Minot, ND", "Verify hours", "American"]
+    ["The Wurst Case Scenario", "1901 N Broadway, Minot, ND 58703", "Tue-Thu 11am-9pm, Fri 11am-11pm, Sat 12pm-11pm, Sun-Mon Closed", "American"]
   ];
   var DEFAULT_CATEGORY = 'Other';
   // Category for a given restaurant id, read straight from the frozen RAW table so it
