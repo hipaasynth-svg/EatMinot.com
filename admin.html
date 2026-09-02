@@ -32,6 +32,7 @@
   .chip{font-size:11px;font-weight:800;border-radius:20px;padding:5px 10px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .chip.paid.on{background:var(--accent);border-color:var(--accent)}
+  .chip.feat.on{background:#B0692A;border-color:#B0692A;color:#fff}
   label.file{font-size:12px;font-weight:800;color:var(--accent);cursor:pointer}
   label.file input{display:none}
   .pickThumbs{display:flex;gap:6px;margin-top:8px;align-items:center}
@@ -94,6 +95,7 @@
             (r.hasPhoto?'<span class="chip" data-rmphoto="'+r.id+'">Remove photo</span>':'')+
             '<span class="chip'+(r.claimed?' on':'')+'" data-claim="'+r.id+'">'+(r.claimed?'Claimed ✓':'Unclaimed')+'</span>'+
             '<span class="chip paid'+(r.paid?' on':'')+'" data-paid="'+r.id+'">'+(r.paid?'Paid ✓':'Free')+'</span>'+
+            '<span class="chip feat'+(r.featured?' on':'')+'" data-feat="'+r.id+'">'+(r.featured?'Most Wanted ★':'Not featured')+'</span>'+
           '</div>'+
           (r.paid ? pickThumbsHtml(r) : '')+
         '</div></div>';
@@ -126,6 +128,7 @@
     }; });
     document.querySelectorAll('[data-claim]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-claim'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{claimed:!r.claimed}).then(function(){ reloadList(); }); }; });
     document.querySelectorAll('[data-paid]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-paid'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{paid:!r.paid}).then(function(){ reloadList(); }); }; });
+    document.querySelectorAll('[data-feat]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-feat'), r=all.filter(function(x){return x.id===id;})[0]; S.adminSetFlag(adminPw,id,{featured:!r.featured}).then(function(){ toast(r.featured?'Removed from Most Wanted':'Added to Minot’s Most Wanted'); reloadList(); }); }; });
     document.querySelectorAll('[data-rmpw]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-rmpw'); S.adminResetPassword(adminPw,id).then(function(res){ toast(res.ok?'Password reset to default':'Reset failed'); reloadList(); }); }; });
     document.querySelectorAll('[data-showpw]').forEach(function(el){ el.onclick=function(){
       var code=el.parentNode.querySelector('.pwval'); if(!code) return;

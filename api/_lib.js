@@ -145,13 +145,14 @@ function seedProfile(id) {
   var name = row[0], claimed = id === 1; // one demo paid listing so the paid features are visible
   return {
     id: id, name: name, address: row[1], hours: row[2],
-    claimed: claimed, paid: claimed, password: hashPw(defaultPassword(name)),
+    claimed: claimed, paid: claimed, featured: claimed, password: hashPw(defaultPassword(name)),
     stripeCustomerId: null, stripeSubscriptionId: null,
     hasPhoto: false, hasPickPhoto: [false, false, false],
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
     note: claimed ? 'Family-owned since day one — thanks for supporting local, Minot!' : '',
     website: claimed ? 'starvingrooster.com' : '',
     reward: 'Free item when your punch card is full', couponValidDays: 14, punchesNeeded: DEFAULT_PUNCHES,
+    offer: claimed ? 'Free appetizer with any two entrées — EatMinot locals only' : '',
     happyHour: claimed
       ? { enabled: true, days: [0, 1, 2, 3, 4, 5, 6], start: '15:00', end: '17:00', special: 'Half-price apps' }
       : { enabled: false, days: [1, 2, 3, 4, 5], start: '15:00', end: '17:00', special: '' }
@@ -206,6 +207,8 @@ function flatToObj(flat, base) {
 // already saved — normalize so older data can't crash a read that expects them.
 function normalizeProfile(p) {
   if (!Array.isArray(p.hasPickPhoto) || p.hasPickPhoto.length !== 3) p.hasPickPhoto = [false, false, false];
+  if (typeof p.featured !== 'boolean') p.featured = false;
+  if (typeof p.offer !== 'string') p.offer = '';
   return p;
 }
 async function getProfile(id) {

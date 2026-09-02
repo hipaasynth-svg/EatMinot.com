@@ -753,6 +753,7 @@
       sec('Restaurant\'s Choice billboard'+(paid?'':' (paid)'), (paid?'':'<div class="lbl" style="text-transform:none;margin-bottom:6px">Upgrade to publish these on your card.</div>')+pick(0,r,paid)+pick(1,r,paid)+pick(2,r,paid))+
       sec('Happy hour', happyBlock(r))+
       sec('Punch card', fld('Reward','<input type="text" id="fReward" value="'+esc(r.reward||'')+'">')+fld('Punches needed for reward',punchesSelect(r))+fld('Coupon valid for (days)','<input type="number" min="1" id="fDays" value="'+(r.couponValidDays||14)+'" style="width:110px">'))+
+      sec('Minot&rsquo;s Most Wanted'+(r.featured?' ★':''), (r.featured?'<div class="lbl" style="text-transform:none;margin-bottom:6px">You&rsquo;re in the Spotlight — this exclusive offer shows on the curated guide.</div>':'<div class="lbl" style="text-transform:none;margin-bottom:6px">A featured-spotlight perk. Diners show their phone before ordering to redeem.</div>')+fld('Exclusive EatMinot offer','<input type="text" id="fOffer" maxlength="90" value="'+esc(r.offer||'')+'" placeholder="e.g. Free appetizer with any two entrées">'))+
       sec('Details', fld('Owner note','<textarea id="fNote" rows="3">'+esc(r.note||'')+'</textarea>')+fld('Website','<input type="text" id="fWebsite" value="'+esc(r.website||'')+'" placeholder="yourplace.com">'))+
       fld('Change password','<input type="password" id="fPw" placeholder="leave blank to keep current">')+
       '<button class="btn accent" id="ownerSave">Save changes</button>'+
@@ -810,7 +811,7 @@
     var picks=[]; document.querySelectorAll('[data-pick]').forEach(function(el){ picks[parseInt(el.getAttribute('data-pick'),10)]=el.value; });
     var days=[]; document.querySelectorAll('#hhDays .day.on').forEach(function(el){ days.push(parseInt(el.getAttribute('data-day'),10)); });
     var np=$('#fPw')?$('#fPw').value:'';
-    var fields={ picks:picks, reward:$('#fReward').value, punchesNeeded:S.clampPunches($('#fPunches').value), couponValidDays:Math.max(1,parseInt($('#fDays').value,10)||1),
+    var fields={ picks:picks, reward:$('#fReward').value, offer:($('#fOffer')?$('#fOffer').value:''), punchesNeeded:S.clampPunches($('#fPunches').value), couponValidDays:Math.max(1,parseInt($('#fDays').value,10)||1),
       note:$('#fNote').value, website:$('#fWebsite').value,
       happyHour:{ enabled:$('#hhOn').checked, days:days, start:$('#hhStart').value||'15:00', end:$('#hhEnd').value||'17:00', special:$('#hhSpecial').value } };
     if(np && np.trim()) fields.password=np.trim();
