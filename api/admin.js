@@ -31,6 +31,20 @@ module.exports = async function (req, res) {
       L.json(res, 200, { ok: true });
       return;
     }
+    // Push the address + hours from the built-in directory (the RAW seed) onto every
+    // saved profile — used after the directory data is corrected, since a shared DB keeps
+    // its own copy that a code deploy alone won't overwrite. Touches only address/hours.
+    if (b.action === 'refreshInfo') {
+      var ids = L.seedIds();
+      for (var i = 0; i < ids.length; i++) {
+        var seed = L.seedProfile(ids[i]);
+        if (!seed) continue;
+        var sa = seed.address, sh = seed.hours;
+        await L.updateProfile(ids[i], function (r) { r.address = sa; r.hours = sh; });
+      }
+      L.json(res, 200, { ok: true, count: ids.length });
+      return;
+    }
 
     var profile = await L.getProfile(b.id);
     if (!profile) { L.json(res, 404, { error: 'not_found' }); return; }
@@ -68,6 +82,14 @@ module.exports = async function (req, res) {
         if (typeof b.paid === 'boolean') { r.paid = b.paid; if (r.paid) r.claimed = true; }
         if (typeof b.featured === 'boolean') { r.featured = b.featured; if (r.featured) r.claimed = true; }
         if (typeof b.hidden === 'boolean') { r.hidden = b.hidden; }
+      });
+      L.json(res, 200, { ok: true });
+      return;
+    }
+    if (b.action === 'setInfo') {
+      await L.updateProfile(profile.id, function (r) {
+        if (typeof b.address === 'string') r.address = b.address.slice(0, 120);
+        if (typeof b.hours === 'string') r.hours = b.hours.slice(0, 160);
       });
       L.json(res, 200, { ok: true });
       return;
