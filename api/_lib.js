@@ -145,7 +145,7 @@ function seedProfile(id) {
   var name = row[0], claimed = id === 1; // one demo paid listing so the paid features are visible
   return {
     id: id, name: name, address: row[1], hours: row[2],
-    claimed: claimed, paid: claimed, featured: claimed, hidden: false, password: hashPw(defaultPassword(name)),
+    claimed: claimed, paid: claimed, featured: claimed, hidden: false, rewardsOn: claimed, password: hashPw(defaultPassword(name)),
     stripeCustomerId: null, stripeSubscriptionId: null,
     hasPhoto: false, hasPickPhoto: [false, false, false],
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
@@ -210,6 +210,12 @@ function normalizeProfile(p) {
   if (typeof p.featured !== 'boolean') p.featured = false;
   if (typeof p.hidden !== 'boolean') p.hidden = false;
   if (typeof p.offer !== 'string') p.offer = '';
+  // rewardsOn is an admin-controlled toggle, independent of claimed/paid — no venue
+  // shows a punch card / earns a reward until this is explicitly on. Profiles saved
+  // before this field existed default from claimed, so an already-live claimed venue's
+  // punch card doesn't silently vanish; a never-claimed venue defaults off, matching
+  // the intent (never promise a reward nobody at that venue has agreed to honor).
+  if (typeof p.rewardsOn !== 'boolean') p.rewardsOn = !!p.claimed;
   return p;
 }
 async function getProfile(id) {
