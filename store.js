@@ -25,37 +25,37 @@
   // column is the cuisine category; the site GROUPS and ALPHABETIZES for display by
   // category + name at render time (see decorateList), so ids stay stable regardless.
   var RAW = [
-    ["The Starving Rooster", "30 1st St NE, Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-9pm", "American"],
+    ["The Starving Rooster", "30 1st St NE, Minot, ND 58701", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 10am-9pm", "American"],
     ["Ebeneezer's Eatery & Irish Pub", "300 E Central Ave, Minot, ND 58701", "Daily 7am-1am (kitchen closes ~10pm)", "Bars & Breweries"],
-    ["Bone's BBQ Smokehouse & Grill", "437 N Broadway, Minot, ND 58703", "Daily ~11am-10/11pm", "BBQ"],
+    ["Bone's BBQ Smokehouse & Grill", "437 N Broadway, Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-10pm", "BBQ"],
     ["Ironhorse Kitchen + Bar", "21 E Central Ave, Minot, ND 58701", "Mon-Thu 11am-11pm, Fri-Sat 11am-12am, Sun Closed", "American"],
     ["Charlie's Main Street Cafe", "113 Main St S, Minot, ND 58701", "Mon-Sat 7am-2pm, Sun 8am-2pm", "Cafés & Bakeries"],
     ["Kroll's Diner", "1221 20th Ave SE, Minot, ND 58701", "Daily 7am-8:45pm", "American"],
     ["Little Blue Elephant", "22 S Main St, Minot, ND 58701", "Verify hours", "Asian"],
     ["Basecamp Indian Kitchen", "1425 24th Ave SW, Minot, ND 58701", "Mon, Wed-Sun 11am-9pm, Tue Closed", "Indian"],
-    ["Prairie Sky Breads", "3 1st St SE, Minot, ND 58701", "Morning-afternoon bakery hours", "Cafés & Bakeries"],
+    ["Prairie Sky Breads", "3 1st St SE Ste 3, Minot, ND 58701", "Tue 9am-2pm, Wed-Fri 7:30am-4pm, Sat-Sun 9am-4pm, Mon Closed", "Cafés & Bakeries"],
     ["Magic City Hoagies & Sweets", "123 Main St S, Minot, ND 58701", "Verify hours", "Sandwiches & Delis"],
-    ["Minot's Daily Bread", "1500 S Broadway, Minot, ND 58701", "Verify hours", "Cafés & Bakeries"],
-    ["Badlands Restaurant and Bar", "1400 31st Ave SW, Minot, ND 58701", "Verify hours", "American"],
+    ["Minot's Daily Bread", "1500 S Broadway, Minot, ND 58701", "Mon-Sat 6:30am-4:30pm, Sun Closed", "Cafés & Bakeries"],
+    ["Badlands Restaurant and Bar", "1400 31st Ave SW, Minot, ND 58701", "Mon-Thu 11am-10pm, Fri 11am-11pm, Sat 11am-10pm, Sun 10am-10pm", "American"],
     ["The Depot and Baggage Claim", "15 Main St N, Minot, ND 58703", "Tue-Thu 11am-9pm, Fri 11am-11pm, Sat 10am-11pm, Sun 10am-2pm, Mon Closed", "American"],
     ["Oishii Ramen", "Downtown Minot", "Verify hours", "Asian"],
     ["Don Tapatío", "1445 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
     ["Mi Mexico Restaurant", "3816 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
     ["Baan Rao Thai Restaurant", "Minot, ND", "Verify hours", "Asian"],
-    ["Ziggy's Caribbean Cuisine", "201 University Ave W, Minot, ND 58703", "Verify hours", "International"],
+    ["Ziggy's Caribbean Cuisine", "201 University Ave W, Minot, ND 58703", "Mon-Sat 11am-7pm, Sun Closed", "International"],
     ["China Star", "1631 S Broadway, Minot, ND 58701", "Verify hours", "Asian"],
-    ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Verify hours", "Burgers"],
-    ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Verify hours", "Pizza"],
-    ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Verify hours", "Pizza"],
-    ["Nite Train Pizza", "515 20th Ave SE, Minot, ND 58701", "Verify hours", "Pizza"],
-    ["Uncle Maddio's Pizza Joint", "3310 16th St SW, Minot, ND 58701", "Verify hours", "Pizza"],
+    ["JL Beers", "2001 22nd Ave SW, Minot, ND 58701", "Mon-Thu 11am-10pm, Fri-Sat 11am-12am, Sun 11am-10pm", "Burgers"],
+    ["Sammy's Pizza", "400 N Broadway, Minot, ND 58703", "Mon-Sat 11am-9pm, Sun 4pm-9pm", "Pizza"],
+    ["Planet Pizza", "220 S Broadway, Minot, ND 58701", "Mon-Thu 11am-9pm, Fri-Sat 11am-10pm, Sun 12pm-9pm", "Pizza"],
+    ["Nite Train Pizza", "515 20th Ave SE Ste 7, Minot, ND 58701", "Mon-Sat 11am-10pm, Sun 3pm-10pm", "Pizza"],
+    ["Uncle Maddio's Pizza Joint", "3310 16th St SW #100, Minot, ND 58701", "Daily 11am-9pm", "Pizza"],
     ["Taco Feliz", "1535 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
     ["El Azteca", "2035 N Broadway, Minot, ND 58703", "Verify hours", "Mexican"],
     ["Homesteaders Restaurant", "2501 Elk Dr, Minot, ND 58701", "Mon-Sat 6:30am-8pm, Sun 7am-8pm", "American"],
-    ["Off The Vine", "15 Main St S, Minot, ND 58701", "Verify hours", "Bars & Breweries"],
+    ["Off The Vine", "15 Main St S, Minot, ND 58701", "Mon-Thu 3pm-11pm, Fri-Sat 3pm-1am, Sun Closed", "Bars & Breweries"],
     ["Souris River Brewing", "32 3rd St NE, Minot, ND 58703", "Verify hours", "Bars & Breweries"],
-    ["Broadway Bean and Bagel", "Minot, ND", "Verify hours", "Cafés & Bakeries"],
-    ["Do Eat", "2400 10th St SW #522 (Dakota Square Mall), Minot, ND 58701", "Sun-Thu 11am-9:30pm, Fri-Sat 11am-10pm", "Asian"],
+    ["Broadway Bean and Bagel", "1701 S Broadway, Minot, ND 58701", "Mon-Fri 7am-4pm, Sat-Sun 8am-2pm", "Cafés & Bakeries"],
+    ["Do Eat", "2400 10th St SW #522 (Dakota Square Mall), Minot, ND 58701", "Mon-Thu 11am-9:30pm, Fri-Sat 11am-10pm, Sun 11am-9:30pm", "Asian"],
     ["Try Thai Food", "1524 S Broadway #4A, Minot, ND 58701", "Mon-Sat 11am-9pm, Sun Closed", "Asian"],
     ["Beowulf Craft Kitchen & Lounge", "1912 Valley Bluffs Dr, Minot, ND 58701", "Mon-Thu 11am-10pm, Fri-Sat 9:30am-10pm, Sun 9:30am-8pm", "American"],
     ["El Arepazo", "2251 36th Ave SW, Minot, ND 58701", "Mon-Sat 10am-7pm, Sun Closed", "International"],
@@ -66,17 +66,17 @@
     ["Zorbas Mediterranean Restaurant", "1412 2nd Ave SW, Minot, ND 58701", "Most days 11am-9pm (Tue sometimes closed - verify)", "Mediterranean"],
     ["Primo", "1505 N Broadway (Grand International), Minot, ND 58703", "Breakfast & dinner hours – verify (often closed Mon)", "American"],
     ["Paradiso Mexican Restaurant", "1445 S Broadway, Minot, ND 58701", "Verify hours", "Mexican"],
-    ["Joe's Italian Restaurant", "7 1st St SE, Minot, ND 58701", "Verify hours", "Italian"],
+    ["Joe's Italian Restaurant", "7 1st St SE, Minot, ND 58701", "Sun-Thu 11am-9pm, Fri-Sat 11am-10pm", "Italian"],
     ["Lucky Bowl", "122 Main St S, Minot, ND 58701", "Verify hours", "Asian"],
-    ["Rocky's Burgers Franks & Fries", "623 N Broadway, Minot, ND 58703", "Verify hours", "Burgers"],
+    ["Rocky's Burgers Franks & Fries", "623 N Broadway, Minot, ND 58703", "Daily 10:30am-10pm", "Burgers"],
     ["Fun On A Bun", "101 Main St S, Minot, ND 58701", "Verify hours", "Burgers"],
     ["Poppa's Place", "510 Central Ave E, Minot, ND 58701", "Verify hours", "American"],
     ["10 North Main", "10 Main St N, Minot, ND 58703", "Verify hours", "American"],
-    ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Verify hours", "Asian"],
-    ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Verify hours", "Pizza"],
-    ["Happy Joe's Pizza & Ice Cream", "Minot, ND", "Verify hours", "Pizza"],
+    ["N.D. Asia Restaurant & Lounge", "3400 16th St SW, Minot, ND 58701", "Sun-Thu 11am-9:30pm, Fri-Sat 11am-10:30pm", "Asian"],
+    ["Spicy Pie", "1100 N Broadway #100, Minot, ND 58703", "Sun-Tue 11am-9pm, Wed-Sat 11am-10pm", "Pizza"],
+    ["Happy Joe's Pizza & Ice Cream", "420 20th Ave SE, Minot, ND 58701", "Mon-Thu 9am-9pm, Fri-Sat 9am-10pm, Sun 9am-9pm", "Pizza"],
     ["Marco's Pizza", "Multiple locations, Minot, ND", "Verify hours", "Pizza"],
-    ["The Wurst Case Scenario", "1901 N Broadway, Minot, ND 58703", "Tue-Thu 11am-9pm, Fri 11am-11pm, Sat 12pm-11pm, Sun-Mon Closed", "American"]
+    ["The Wurst Case Scenario", "1901 N Broadway Ste B (North Hill Bowl), Minot, ND 58703", "Mon-Thu 11am-10pm, Fri-Sat 11am-11pm, Sun 11am-10pm", "American"]
   ];
   var DEFAULT_CATEGORY = 'Other';
   // Category for a given restaurant id, read straight from the frozen RAW table so it
@@ -517,6 +517,24 @@
     if (typeof flags.hidden === 'boolean') { lr.hidden = flags.hidden; }
     saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
   }
+  // Set one venue's address and/or hours (admin editor).
+  function adminSetInfo(pw, id, info) {
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setInfo', id: id, address: info.address, hours: info.hours }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
+    var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
+    if (typeof info.address === 'string') lr.address = info.address.slice(0, 120);
+    if (typeof info.hours === 'string') lr.hours = info.hours.slice(0, 160);
+    saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
+  }
+  // Push address+hours from the built-in directory (seedList) onto every saved venue —
+  // used once after the directory data is corrected, since a shared DB keeps its own copy.
+  function adminRefreshInfo(pw) {
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'refreshInfo' }).then(function (res) { return refresh().then(function () { return { ok: res.ok, count: res.data && res.data.count }; }); });
+    if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
+    var seeds = seedList(), byId = {}; seeds.forEach(function (s) { byId[s.id] = s; });
+    var d = loadLocal(); d.restaurants.forEach(function (lr) { var s = byId[lr.id]; if (s) { lr.address = s.address; lr.hours = s.hours; } });
+    saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true, count: d.restaurants.length });
+  }
   function adminResetPassword(pw, id) {
     if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'resetPassword', id: id }).then(function (res) { return { ok: res.ok, defaultPassword: res.data && res.data.defaultPassword }; });
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
@@ -545,7 +563,7 @@
     checkout: checkout, confirmUpgrade: confirmUpgrade,
     adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto,
     adminPickPhoto: adminPickPhoto, adminRemovePickPhoto: adminRemovePickPhoto,
-    adminSetFlag: adminSetFlag, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
+    adminSetFlag: adminSetFlag, adminSetInfo: adminSetInfo, adminRefreshInfo: adminRefreshInfo, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
     slug: slug, defaultPassword: defaultPassword, fmtNum: fmtNum, isHappyHourNow: isHappyHourNow, to12h: to12h, fileToDataUrl: fileToDataUrl
   };
 })(window);

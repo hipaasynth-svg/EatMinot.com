@@ -59,9 +59,12 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   tier; free claimed owners can edit the rest.
 - **Admin console** — upload a photo for any restaurant, toggle Claimed/Paid, add to
   "Minot's Most Wanted", **hide/show a restaurant** (pulls it from the public list, tag
-  page, Most Wanted and rating while keeping it in the admin panel to restore), view/hand
-  out owner passwords (or reset one to default), copy each restaurant's tag URL, reset
-  demo data. No admin action writes to a vote counter — those only move via a real rating.
+  page, Most Wanted and rating while keeping it in the admin panel to restore), **edit a
+  venue's address & hours** inline (or **Refresh hours from directory** to push the built-in
+  address/hours onto every saved profile at once — handy in shared mode, where a code deploy
+  alone won't overwrite the stored copy; it touches only address/hours, never flags or
+  photos), view/hand out owner passwords (or reset one to default), copy each restaurant's
+  tag URL, reset demo data. No admin action writes to a vote counter — those only move via a real rating.
 
 ### Default credentials
 - **Owner login:** pick your restaurant, password = its name (letters only) + `26`
