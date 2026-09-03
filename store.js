@@ -97,6 +97,8 @@
     return list.filter(function (r) { return !REMOVED[r.id] && !r.hidden; }).map(function (r) {
       withRating(r);
       r.category = categoryOf(r.id);
+      // Backfill for local-mode data saved before rewardsOn existed.
+      if (typeof r.rewardsOn !== 'boolean') r.rewardsOn = !!r.claimed;
       return r;
     }).sort(function (a, b) {
       var c = String(a.category).localeCompare(String(b.category), undefined, { sensitivity: 'base' });
@@ -121,7 +123,7 @@
       var id = i + 1, name = row[0], claimed = id === 1;
       return {
         id: id, name: name, address: row[1], hours: row[2],
-        claimed: claimed, paid: claimed, featured: claimed, hidden: false, password: defaultPassword(name),
+        claimed: claimed, paid: claimed, featured: claimed, hidden: false, rewardsOn: claimed, password: defaultPassword(name),
         photo: null, hasPhoto: false,
         pickPhotos: [null, null, null], hasPickPhoto: [false, false, false],
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
@@ -186,18 +188,24 @@
   }
   // Apply a completed rating to this device's punch card; returns the record. `total` is the
   // restaurant's current punches-needed setting — the card fills to that, not a fixed 10.
-  function punch(id, couponValidDays, reward, total) {
+  // `rewardsOn` gates only the reward mechanics (progress + coupon) — ratedAt is always
+  // stamped so the once-per-24h rate limit holds for every venue, reward or not.
+  function punch(id, couponValidDays, reward, total, rewardsOn) {
     total = clampPunches(total);
     var d = loadDevice(); var rec = d.perRest[id] || { done: 0, total: total, coupon: null, ratedAt: 0 };
     rec.ratedAt = Date.now();
-    rec.total = total;
-    var nd = rec.done + 1;
-    if (nd >= total) {
-      rec.done = 0;
-      var days = couponValidDays || 14;
-      rec.coupon = { code: 'EAT-' + Math.random().toString(36).slice(2, 7).toUpperCase(), issuedAt: Date.now(), expiresAt: Date.now() + days * 86400000, reward: reward || 'Reward earned!' };
-    } else { rec.done = nd; }
-    d.perRest[id] = rec; saveDevice(d); deviceBackup(); walletSync(id); return rec;
+    if (rewardsOn) {
+      rec.total = total;
+      var nd = rec.done + 1;
+      if (nd >= total) {
+        rec.done = 0;
+        var days = couponValidDays || 14;
+        rec.coupon = { code: 'EAT-' + Math.random().toString(36).slice(2, 7).toUpperCase(), issuedAt: Date.now(), expiresAt: Date.now() + days * 86400000, reward: reward || 'Reward earned!' };
+      } else { rec.done = nd; }
+    }
+    d.perRest[id] = rec; saveDevice(d); deviceBackup();
+    if (rewardsOn) walletSync(id);
+    return rec;
   }
 
   /* ---------- anonymous server backup of punches (keyed by the random deviceId) ----------
@@ -386,7 +394,7 @@
       return api('rate', 'POST', { id: id, stars: stars, upvote: upvote }).then(function (res) {
         if (!res.ok) return { ok: false, reason: (res.data && res.data.error) || 'error' };
         var c = get(id); if (c) { c.upvotes = res.data.upvotes; c.totalRatings = res.data.totalRatings; c.rating = res.data.rating; }
-        var rec = punch(id, r ? r.couponValidDays : 14, r ? r.reward : '', punchesFor(r));
+        var rec = punch(id, r ? r.couponValidDays : 14, r ? r.reward : '', punchesFor(r), !!(r && r.rewardsOn));
         return { ok: true, record: rec };
       });
     }
@@ -395,7 +403,7 @@
     if (!lr) return Promise.resolve({ ok: false, reason: 'not_found' });
     lr.totalRatings += 1; lr.ratingSum += stars; lr.ratingCount += 1; if (upvote) lr.upvotes += 1;
     saveLocal(d); cache = decorateList(d.restaurants);
-    var rec2 = punch(id, lr.couponValidDays, lr.reward, punchesFor(lr));
+    var rec2 = punch(id, lr.couponValidDays, lr.reward, punchesFor(lr), !!lr.rewardsOn);
     return Promise.resolve({ ok: true, record: rec2 });
   }
 
@@ -508,13 +516,14 @@
     return Promise.resolve({ ok: true });
   }
   function adminSetFlag(pw, id, flags) {
-    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid, featured: flags.featured, hidden: flags.hidden }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'setFlag', id: id, claimed: flags.claimed, paid: flags.paid, featured: flags.featured, hidden: flags.hidden, rewardsOn: flags.rewardsOn }).then(function (res) { return refresh().then(function () { return { ok: res.ok }; }); });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
     if (typeof flags.claimed === 'boolean') { lr.claimed = flags.claimed; if (!lr.claimed) { lr.paid = false; lr.featured = false; } }
     if (typeof flags.paid === 'boolean') { lr.paid = flags.paid; if (lr.paid) lr.claimed = true; }
     if (typeof flags.featured === 'boolean') { lr.featured = flags.featured; if (lr.featured) lr.claimed = true; }
     if (typeof flags.hidden === 'boolean') { lr.hidden = flags.hidden; }
+    if (typeof flags.rewardsOn === 'boolean') { lr.rewardsOn = flags.rewardsOn; }
     saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true });
   }
   // Set one venue's address and/or hours (admin editor).
