@@ -41,11 +41,15 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   then it resets and issues a short redemption code with an expiry.
 - **Wallet passes + card backup** — progress lives per-device, but in shared mode it is
   also mirrored to the backend under the device's random token (no name/email/account),
-  so a reload or wiped cache can restore it. Customers can **Add card to Google Wallet**;
-  the pass carries the punch balance and a QR that reopens the card (`?dev=<token>`), so a
-  new phone re-links to the same card. Google is env-gated (see below); Apple is wired
-  through and lights up once its certs are set. With no wallet env, the buttons simply
-  don't render and everything else works unchanged.
+  so a reload or wiped cache can restore it. Customers can **Add card to Google Wallet** or
+  **Add to Apple Wallet**; each pass carries the punch balance and a QR that reopens the
+  card (`?dev=<token>`), so a new phone re-links to the same card. The **Google** card also
+  **auto-updates** after each punch (server-side patch). The **Apple** `.pkpass` is generated
+  and signed on the fly (`/api/pass?provider=apple`, served as `application/vnd.apple.pkpass`);
+  its balance is baked in at add-time, so re-adding refreshes it (live push-update via APNs is
+  a later step). Both are env-gated (see below); with no wallet env the buttons don't render
+  and everything else works unchanged. Apple signing shells out to the system `openssl`
+  (present on Vercel's Node runtime).
 - **Neon "Happy Hour Now"** indicator that switches on/off by the clock from the
   owner's schedule (day + start/end + special).
 - **Owner dashboard** (password-gated) — Restaurant's Choice billboard (top 3 picks),
@@ -106,6 +110,7 @@ Photos are stored under separate Redis keys and downscaled client-side to keep t
 - `POST /api/device` `{action:'get'|'put', deviceId, perRest}` → anonymous punch-card backup
   (keyed only by the random `dev_…` token; sanitized to punch/coupon fields; no identity)
 - `GET  /api/pass` → `{google, apple}` (which wallet buttons the server can issue)
+- `GET  /api/pass?provider=apple&dev=&venueId=&done=&total=` → the signed `.pkpass` file
 - `POST /api/pass` `{provider, dev, venueId, done, total}` → an Add-to-Wallet save link
 
 ## Owner auth (server-side)
