@@ -145,7 +145,11 @@ function seedProfile(id) {
   var name = row[0], claimed = id === 1; // one demo paid listing so the paid features are visible
   return {
     id: id, name: name, address: row[1], hours: row[2],
-    claimed: claimed, paid: claimed, featured: claimed, hidden: false, rewardsOn: claimed, password: hashPw(defaultPassword(name)),
+    claimed: claimed, paid: claimed, featured: claimed, hidden: false, rewardsOn: claimed,
+    // AI Assistant (beta) — always starts off; only a super admin can turn it on per venue
+    // (see api/admin.js setFlag), independent of claimed/paid. Not a Stripe-gated tier yet.
+    agentEnabled: false,
+    password: hashPw(defaultPassword(name)),
     stripeCustomerId: null, stripeSubscriptionId: null,
     hasPhoto: false, hasPickPhoto: [false, false, false],
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
@@ -216,6 +220,9 @@ function normalizeProfile(p) {
   // punch card doesn't silently vanish; a never-claimed venue defaults off, matching
   // the intent (never promise a reward nobody at that venue has agreed to honor).
   if (typeof p.rewardsOn !== 'boolean') p.rewardsOn = !!p.claimed;
+  // Profiles saved before this beta existed default OFF regardless of claimed/paid —
+  // an admin must explicitly opt each venue in while it's being tested.
+  if (typeof p.agentEnabled !== 'boolean') p.agentEnabled = false;
   return p;
 }
 async function getProfile(id) {
