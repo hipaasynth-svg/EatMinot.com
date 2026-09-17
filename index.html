@@ -760,11 +760,23 @@
     });
   }
   var ownerPw='';
+  // Mirrors the founding-vs-standard split in api/checkout.js: once a venue is r.founding
+  // it's locked at $79/mo (its foundingLockUntil date is informational only); r.foundingOffer
+  // means an admin granted the offer but the venue hasn't checked out yet, so it still shows
+  // $59/mo until they redeem it. Keeping this in one place avoids the price text and the
+  // actual Stripe amount drifting apart the way they had before Founding Three existed.
+  function tierLabel(r){
+    if (r.paid) return r.founding ? 'Claimed · Paid · $79/mo (Founding)' : 'Claimed · Paid · $59/mo';
+    if (r.foundingOffer) return 'Claimed (free) — Founding Three: 10 weeks free, then $79/mo';
+    return 'Claimed (free) — upgrade to unlock photo & billboard';
+  }
+  function upgradePriceText(r){ return r.foundingOffer ? '10 weeks free, then $79/mo' : '$59/mo'; }
+  function upgradeButtonText(r){ return r.foundingOffer ? 'Start free trial — then $79/mo' : 'Upgrade — $59/mo'; }
   function openDash(id){
     var r=S.get(id); if(!r) return;
     ownerPw=$('#loginPw').value || ownerPw;
     $('#dashName').textContent=r.name;
-    $('#dashTier').textContent=(r.paid?'Claimed · Paid · $59/mo':'Claimed (free) — upgrade to unlock photo & billboard');
+    $('#dashTier').textContent=tierLabel(r);
     renderDash(r); showScreen('dash');
   }
   function renderDash(r){
@@ -773,13 +785,13 @@
       '<div id="ownerPhotoPrev" style="height:120px;border-radius:12px;background:#EDE7DD center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#B7AE9E;font-weight:700;font-size:13px">'+(r.hasPhoto?'':'No photo yet')+'</div>'+
       '<input type="file" accept="image/*" id="ownerPhoto" '+(paid?'':'disabled')+'></div>';
     var photoBlock = paid ? photoInner :
-      '<div class="lock">'+photoInner+'<div class="veil"><div class="pill">$59/mo</div><div style="font-weight:800;font-size:13px">Upgrade to change your photo</div><div class="lbl" style="text-transform:none">Also unlocks the Restaurant\'s Choice billboard</div><button class="btn accent" id="ownerUpgrade" style="padding:10px 16px">Upgrade — $59/mo</button></div></div>';
+      '<div class="lock">'+photoInner+'<div class="veil"><div class="pill">'+upgradePriceText(r)+'</div><div style="font-weight:800;font-size:13px">Upgrade to change your photo</div><div class="lbl" style="text-transform:none">Also unlocks the Restaurant\'s Choice billboard</div><button class="btn accent" id="ownerUpgrade" style="padding:10px 16px">'+upgradeButtonText(r)+'</button></div></div>';
 
     host.innerHTML =
       '<div class="note">'+(S.isServer()
         ? 'Changes save to the shared database and appear for every customer.'
         : 'Changes save on <b>this browser only</b> until you attach storage in Vercel (see README) — then it syncs to all devices.')+
-        ' Upgrading opens secure <b>Stripe</b> checkout for the $59/mo tier.</div>'+
+        ' Upgrading opens secure <b>Stripe</b> checkout for the '+upgradePriceText(r)+' tier.</div>'+
       photoBlock+
       sec('Restaurant\'s Choice billboard'+(paid?'':' (paid)'), (paid?'':'<div class="lbl" style="text-transform:none;margin-bottom:6px">Upgrade to publish these on your card.</div>')+pick(0,r,paid)+pick(1,r,paid)+pick(2,r,paid))+
       sec('Happy hour', happyBlock(r))+

@@ -77,6 +77,16 @@ module.exports = async function (req, res) {
       return;
     }
     if (b.action === 'setFlag') {
+      // Founding Three is capped at L.FOUNDING_LIMIT venues total — check before the
+      // read-modify-write below so a venue that already holds a slot (founding or a
+      // pending foundingOffer) never gets blocked from being turned back off.
+      if (b.foundingOffer === true && !profile.founding && !profile.foundingOffer) {
+        var all = await L.getAllRestaurants();
+        if (L.countFoundingSlots(all) >= L.FOUNDING_LIMIT) {
+          L.json(res, 409, { error: 'founding_full', limit: L.FOUNDING_LIMIT });
+          return;
+        }
+      }
       await L.updateProfile(profile.id, function (r) {
         if (typeof b.claimed === 'boolean') { r.claimed = b.claimed; if (!r.claimed) { r.paid = false; r.featured = false; } }
         if (typeof b.paid === 'boolean') { r.paid = b.paid; if (r.paid) r.claimed = true; }
@@ -89,6 +99,10 @@ module.exports = async function (req, res) {
         // AI Assistant (beta) — super-admin on/off switch per venue, independent of
         // claimed/paid. Not tied to Stripe yet; see api/agent.js for the actual gate.
         if (typeof b.agentEnabled === 'boolean') { r.agentEnabled = b.agentEnabled; }
+        // Founding Three — grants the 10-week-trial-then-$79/mo-locked offer at checkout.
+        // Only ever cleared manually here; checkout.js flips r.founding on separately once
+        // the offer is actually redeemed, which keeps the $79 rate even after this is unset.
+        if (typeof b.foundingOffer === 'boolean') { r.foundingOffer = b.foundingOffer; }
       });
       L.json(res, 200, { ok: true });
       return;
