@@ -17,10 +17,17 @@ module.exports = async function (req, res) {
     if (rid && paidOk) {
       var r = await L.getProfile(rid);
       if (r) {
+        var founding = sess.metadata && sess.metadata.founding === 'true';
         await L.updateProfile(r.id, function (p) {
           p.paid = true; p.claimed = true;
           p.stripeCustomerId = sess.customer || p.stripeCustomerId;
           p.stripeSubscriptionId = (sess.subscription && (sess.subscription.id || sess.subscription)) || p.stripeSubscriptionId;
+          // Locks in the Founding Three $79/mo rate permanently, independent of the
+          // admin-granted foundingOffer flag (which can be cleared once redeemed).
+          if (founding && !p.founding) {
+            p.founding = true;
+            p.foundingLockUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+          }
         });
       }
       L.json(res, 200, { ok: true, paid: true, id: parseInt(rid, 10) });
