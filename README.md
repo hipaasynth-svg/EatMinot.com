@@ -13,7 +13,7 @@ per restaurant every 24 hours. No accounts, no email/text collection, no persona
 | File | Purpose |
 |------|---------|
 | `index.html` | Public app + owner login + owner dashboard |
-| `admin.html` | Operator admin (upload photos, toggle Claimed/Paid, see owner passwords) |
+| `admin.html` | Operator admin (upload photos, toggle Claimed/Paid, hand out setup codes) |
 | `store.js`   | Shared data model, seed list, persistence, helpers |
 
 Open `index.html` for the customer experience; `admin.html` for the operator console.
@@ -27,7 +27,8 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   a "✓ Rated" confirmation. "Browse all →" leaves for the normal app. This enforces
   "verified presence only" at the UI level, not just as a policy.
 - **Two views of each restaurant, split by purpose:**
-  - The **Rolodex** (home carousel, 39 seeded Minot restaurants) is a lean teaser —
+  - The **Rolodex** (home carousel, 47 live Minot restaurants of 52 seeded — the rest are
+    held back via the `REMOVED` id-map pending a photo) is a lean teaser —
     name, hours, the happy-hour cue, and verified-rating count only. Smooth momentum
     drag with a click-vibration on each turn (arrow keys / edge buttons on desktop).
   - The **tag/QR detail page** carries everything else: address, the Restaurant's Choice
@@ -63,14 +64,33 @@ Open `index.html` for the customer experience; `admin.html` for the operator con
   venue's address & hours** inline (or **Refresh hours from directory** to push the built-in
   address/hours onto every saved profile at once — handy in shared mode, where a code deploy
   alone won't overwrite the stored copy; it touches only address/hours, never flags or
-  photos), view/hand out owner passwords (or reset one to default), copy each restaurant's
+  photos), hand out a listing’s setup code or generate a new owner password, copy each restaurant’s
   tag URL, reset demo data. No admin action writes to a vote counter — those only move via a real rating.
 
-### Default credentials
-- **Owner login:** pick your restaurant, password = its name (letters only) + `26`
-  (e.g. `thestarvingrooster26`). Changeable in the dashboard; each password is listed
-  in the admin console. Owners who lose it can email `cody@eatminot.com`.
-- **Admin:** `minot-admin` (changeable inside the admin console / `EAT_ADMIN_PASSWORD`).
+### Owner onboarding (no default passwords)
+There is deliberately **no formula that turns a restaurant's name into its credential**,
+and no password is seeded for any listing. A restaurant is onboarded like this:
+
+1. The admin console shows that listing's **setup code** — a random 8-character code,
+   generated once per venue and stored on its profile. Hand it over with the tags (the
+   "Copy setup link" button gives you `/?owner=<id>&c=<code>` for the packet QR).
+2. The owner opens that link, enters the setup code, and picks their own password. That
+   claims the listing, and the code is spent.
+3. After that, only their password works. A listing nobody has claimed cannot be logged
+   into at all — there is no password on it to guess.
+
+If an owner loses their password, an admin generates a new random one from the console
+(shown once — only the salted hash is stored). If a setup card goes astray before the
+listing is claimed, "New code" issues a fresh code and invalidates the old one. Owners
+can email `cody@eatminot.com`.
+
+> An earlier version seeded every listing with its name + `26` and this file published the
+> formula, which meant any listing could be logged into by anyone who could read its name.
+> `tests/auth.test.js` covers that case specifically so it cannot come back.
+
+- **Admin password:** set `EAT_ADMIN_PASSWORD` in Vercel. There is a development fallback
+  in `api/_lib.js` for local use; **treat any deployment without that variable set as an
+  open admin console** and set it before going live.
 
 ## Shared database (turn on cross-device sync)
 
@@ -100,7 +120,7 @@ endpoint, so this costs nothing extra on page load.
    automatically.
 2. **Redeploy** (Deployments → ⋯ → Redeploy) so the functions pick up the new env vars.
 3. Done — the app flips to shared mode on the next load. (Optional: set
-   `EAT_ADMIN_PASSWORD` to change the admin password from the `minot-admin` default.)
+   `EAT_ADMIN_PASSWORD` — required before going live; see "Owner onboarding" above.)
 
 Photos are stored under separate Redis keys and downscaled client-side to keep them small.
 
@@ -125,8 +145,10 @@ owner edits/photo uploads send — the password isn't re-transmitted on every ac
 ever left unset, the code signs with a random secret generated fresh per cold start instead
 of a fixed fallback — an unset secret just logs owners out on redeploy, never a silent hole.
 
-The admin console never shows password hashes: it shows each owner's **default** password
-(name + `26`) and flags any that an owner has changed, with a one-click **Reset to default**.
+The admin console never shows password hashes, and there is no default password to show.
+For an unclaimed listing it shows that venue's **setup code**; for a claimed one it shows
+only whether a password has been set, with a **Generate new password** action that returns
+a fresh random password once.
 
 ## Billing — $59/mo Claimed tier (Stripe)
 
@@ -157,7 +179,7 @@ Implemented with Stripe's REST API directly (no SDK): `api/checkout.js`,
 |-----|---------|
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Shared database (auto-added by Vercel's Upstash Redis) |
 | `EAT_SESSION_SECRET` | Unforgeable owner session tokens |
-| `EAT_ADMIN_PASSWORD` | Overrides the `minot-admin` admin default |
+| `EAT_ADMIN_PASSWORD` | The admin-console password. **Set this before going live.** |
 | `STRIPE_SECRET_KEY` | Live $59/mo Stripe checkout |
 | `STRIPE_WEBHOOK_SECRET` | Auto status sync (cancellations) |
 | `STRIPE_PRICE_ID` | Use a fixed Stripe Price instead of the inline $59/mo |

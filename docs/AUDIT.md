@@ -7,9 +7,34 @@ confirmed against the live Vercel/Upstash config, it is marked **VERIFY LIVE** w
 the exact check to run.
 
 Commits audited:
-- `EatMinot.com` @ `affae60`
+- `EatMinot.com` @ `affae60` (= `origin/main`)
 - `drinkminot` @ `ac2214d`
 - `hipaasynth-svg-minot-agent` @ `840176c`
+
+---
+
+## Corrections to the first draft of this audit
+
+The first pass read `main` only and did not check the open pull requests. Two findings
+were wrong as a result, and they are corrected in place below:
+
+- **§3.2 was wrong.** It said the trial had no implementation. It does —
+  [PR #30](https://github.com/hipaasynth-svg/EatMinot.com/pull/30), open since 17 Sep,
+  implements **Founding Three: a 70-day trial then $79/mo locked for a year**, capped at 3
+  venues and re-checked at checkout so a slot can't be double-booked. Not merged, so not
+  live, but written.
+- **§3.1 was overstated.** `@vercel/analytics` *is* a declared dependency in both
+  `package.json` files (commit `332d3d8`, "Install Vercel Web Analytics"). It is never
+  imported — no `inject()` call, no script tag — so nothing in the app collects anything.
+  Vercel Web Analytics may still be enabled at the project level, which would give
+  platform-side pageviews. Either way it is pageviews, not the per-venue tap and
+  redemption counts an owner needs, so the substance of the finding stands.
+
+Two findings have since been **fixed** rather than corrected — §1.4, §1.5 and part of
+§1.6 — and are marked inline. Everything else in this document still describes the
+deployed system. In particular, §1.1–§1.3 (the rating endpoint) were re-checked against
+**every one of the 12 refs in the repository**, including PR #30's branch: `api/rate.js`
+is 27 lines with no authentication at any of them.
 
 ---
 
@@ -77,7 +102,15 @@ Nothing is signed; there is no secret in the tag.
 > day. No out-of-towners, no competitors, no bots" (`owner-pamphlet-trifold.html:219`)
 > is not true of the deployed system. This is the sentence the $59 is sold on.
 
-### 1.4 Any member of the public can log in as any venue owner
+### 1.4 Any member of the public can log in as any venue owner — **FIXED**
+> **Fixed** on `hipaasynth-svg/focused-sagan-si6qgh` in both repos. `seedProfile` no longer
+> seeds a password at all (`password: null`), `login` refuses any listing that is not
+> `claimed` and any listing with no password set, `normalizeProfile` drops a stored hash on
+> an unclaimed record so profiles already in Redis with the old derivable hash are
+> neutralised without a migration, and the formula is gone from both public READMEs and
+> from DrinkMinot's login screen, which had been printing it as a hint. Covered by
+> `tests/auth.test.js` (18 assertions per site), which asserts the exact old password is
+> refused. The description below is what was there.
 `api/_lib.js:79` `defaultPassword(name) = slug(name) + '26'` — and `seedProfile`
 (`api/_lib.js:148`) sets **every** venue's password to that value, claimed or not.
 `api/owner.js:17` `action:'login'` checks only `verifyPw`; it never checks `claimed`.
@@ -97,7 +130,14 @@ reward, happy hour, and Most Wanted offer — and **change the password**, locki
 real owner out of their own listing (`api/owner.js:72`). Photo upload is the only
 action gated behind `paid`.
 
-### 1.5 Anyone can claim any unclaimed listing
+### 1.5 Anyone can claim any unclaimed listing — **FIXED**
+> **Fixed** on the same branch. `claim` now requires that venue's **setup code** — a random
+> 8-character secret generated once per venue, stored on the profile, stripped from
+> `publicView` so `/api/state` cannot leak it, and shown only in the
+> admin-authenticated console. The owner's packet QR carries it as
+> `/?owner=<id>&c=<code>`. Admin gained `newClaimCode` for a card that goes astray, and
+> `resetPassword` now returns a random password once instead of a derivable default. The
+> description below is what was there.
 `api/owner.js:24-31` — `action:'claim'` succeeds for any `id` whose profile has
 `claimed === false`, with no proof of ownership. It sets the password and flips
 `claimed`. Since `claimed` seeds true only for id 1, **every other venue on both
@@ -172,11 +212,17 @@ sound and should not be removed. Worth noting only because the string exists on 
 
 ## 3. Severity 2 — the business model gaps
 
-### 3.1 You cannot prove ROI, because nothing is counted
-Verified by grep across both repos: no analytics library, no pageview counter, no tap
-counter, no scan counter, no impression counter, no redemption counter. `recordTap()`
-writes to `localStorage` only and is never sent to the server. The device backup
-(`api/device.js`) stores punch state but is never aggregated.
+### 3.1 You cannot prove ROI, because nothing useful is counted
+`@vercel/analytics` is a declared dependency in both `package.json` files (commit
+`332d3d8`) but is **never imported** — no `inject()`, no script tag. Vercel Web Analytics
+may still be switched on at the project level, which would give platform-side pageviews
+without any code. **VERIFY LIVE:** check each Vercel project's Analytics tab.
+
+Either way, what does not exist anywhere is anything venue-level: no tap counter, no scan
+counter, no impression counter, no redemption counter. `recordTap()` writes to
+`localStorage` only and is never sent to the server. The device backup (`api/device.js`)
+stores punch state but is never aggregated. A site-wide pageview graph tells an owner
+nothing about their own listing.
 
 So the entire owner-visible evidence base for $59/month is a single number —
 verified rating count — which is also the number they can't see move because of §1.
@@ -188,15 +234,39 @@ still be collecting strictly less than Google Analytics collects about a bounce.
 Without it there is no monthly owner report, no renewal conversation, no upsell, and
 no way for you to see which venues are dead.
 
-### 3.2 The Founding Five offer in the printed pamphlet does not exist in code
-`owner-pamphlet-trifold.html` promises "One trial month, on us." `api/checkout.js`
-has no `subscription_data[trial_period_days]`, no coupon, no promotion code, no
-`allow_promotion_codes`. Verified by grep: the strings `trial`, `coupon_`,
-`promotion` appear nowhere in either `api/`.
+### 3.2 The trial is written but unmerged — **CORRECTED**
+The first draft of this audit said the pamphlet's trial offer had no implementation. That
+was wrong, and it was wrong because this audit read `main` and not the open PRs.
 
-You are therefore honouring the pamphlet by hand: comp them with the admin `paid`
-toggle and remember, personally, to charge them in 30 days. That is revenue leakage
-with a human memory as its only control. One Stripe line fixes it.
+[PR #30](https://github.com/hipaasynth-svg/EatMinot.com/pull/30) (branch
+`hipaasynth-svg/blissful-goodall-vrxplq`, open since 17 Sep) implements **Founding Three**:
+an admin-granted `foundingOffer` flag capped at 3 venues, a 70-day Stripe trial at $79/mo
+for those venues, `founding` flipped permanently on completed checkout to lock that rate,
+and `foundingLockUntil` recording the one-year mark. The cap is enforced in both
+`api/admin.js` `setFlag` and again in `api/checkout.js` at checkout time, so a slot cannot
+be double-booked by two venues checking out at once. Its PR body reports 19/19 assertions
+passing in a scripted run with Stripe stubbed.
+
+That PR also fixes something this audit missed: `store.js`'s `adminSetFlag` was not
+forwarding `agentEnabled`, so the AI Assistant admin toggle was a no-op.
+
+**What remains true:** it is not merged, so on the deployed site checkout is still a flat
+$59/mo with no trial, and any founding venue is being comped by hand with the admin `paid`
+toggle. The real finding is not "unbuilt" — it is **built and sitting unmerged for five
+days while the offer is being sold**, which is a worse failure mode because the sales
+proposal and the running code disagree and nobody would notice until a card was charged.
+
+Pricing as of this audit, for the record, since the field guide had it wrong too: standard
+tier **$59/mo**; Founding Three **10 weeks free, then $79/mo locked for a year**, 3 slots
+total.
+
+> **Sequencing note.** PR #30 and the security fix on
+> `hipaasynth-svg/focused-sagan-si6qgh` both edit `seedProfile`, `normalizeProfile` and the
+> `module.exports` block of `api/_lib.js`. PR #30 still carries
+> `password: hashPw(defaultPassword(name))`. **Do not resolve that conflict by taking PR
+> #30's side of those hunks** — that reinstates §1.4. Whichever merges second should keep
+> `password: null` and the claim-code fields, and `tests/auth.test.js` will fail loudly if
+> it doesn't.
 
 ### 3.3 The scarce asset is given away, not sold
 `guide.html` has exactly **3 Spotlight slots**, backfilled with top-rated venues.
@@ -224,7 +294,29 @@ run is currently a cost with no matching line of revenue.
 
 ## 4. Severity 2 — content quality, which is the demand-side problem
 
-Measured directly from the seed tables.
+> **Read this before the table.** These counts are measured from the **`RAW` seed tables in
+> the repository**, not from the live database, and the two are not the same thing. In
+> shared mode a venue's saved Redis profile wins over the seed, and `api/admin.js`
+> `setInfo` writes hours and addresses straight to that profile without touching the seed.
+> So **hours corrected through the admin console are live on the site and invisible here.**
+> EatMinot has had that editor since commit `023158f`, so its real figures are very likely
+> better than this table — possibly complete. The numbers below are the floor, i.e. what a
+> fresh deploy with an empty database would show.
+>
+> This session's network policy blocks outbound requests to `eatminot.com` and
+> `drinkminot.com` (the proxy returns 403 on CONNECT), so this could not be settled from
+> here. **VERIFY LIVE:** `curl -s https://eatminot.com/api/state | grep -c 'Verify hours'`
+> is the real answer for each site.
+>
+> One asymmetry that is *not* uncertain: **DrinkMinot has no `setInfo` action at all**
+> (§4.2). There is no path by which its hours could have been corrected through the admin
+> console, and the owner dashboard does not edit hours either. So DrinkMinot's 21 and 23
+> below are real unless its stored profiles were written from a different seed.
+
+And §4.4 below is the more serious version of this finding: the button that looks like it
+refreshes this data used to destroy it.
+
+Measured from the seed tables:
 
 | | EatMinot | DrinkMinot |
 |---|---|---|
@@ -254,6 +346,34 @@ Verified divergence between the twins:
 wins over the seed table, so on DrinkMinot the placeholder addresses **cannot be
 corrected by a code deploy alone and cannot be corrected from admin at all.** Porting
 those two actions is the prerequisite for fixing §4.1.
+
+### 4.4 "Refresh hours from directory" destroyed the hours it claimed to refresh — **FIXED**
+This is the real content finding, and it only surfaced because the seed-table counts above
+were challenged as already fixed.
+
+`api/admin.js` `refreshInfo` pushed `seedProfile()`'s address and hours onto **every** saved
+profile unconditionally. For every venue whose seed row still says `Verify hours` — 15 of 47
+on EatMinot — that overwrote the real, hand-entered hours in the database with the
+placeholder. One click, no confirmation, and the button is labelled *Refresh hours from
+directory*, which reads like the opposite of what it did. Reproduced:
+
+```
+seed hours for id 7:      "Verify hours"
+after your admin edit:    "Mon-Sat 11am-9pm, Sun Closed"
+after refreshInfo:        "Verify hours"      <-- gone
+```
+
+The damage is silent and unrecoverable: the hours existed only in Redis, there is no
+backup (§5.5), and nothing logs what the old value was. If this button was ever pressed
+after hours were entered, that is where they went — and it would look exactly like the
+work had never been done.
+
+> **Fixed** on `hipaasynth-svg/focused-sagan-si6qgh`. `refreshInfo` now skips any field
+> whose seed value is a placeholder (`L.isPlaceholderHours` / `L.isPlaceholderAddress`), so
+> a stand-in can never overwrite something a human typed, while a genuinely corrected seed
+> value still propagates as intended. It also reports `updated` and `skipped` counts.
+> Covered by `tests/directory.test.js` (15 assertions), which asserts both halves: real
+> hours survive, and a stale stored value is still replaced when the seed has real hours.
 
 ### 4.3 The `REMOVED` mechanism trades trust for thinness
 Hiding photo-less venues keeps the carousel looking good, and the frozen-id

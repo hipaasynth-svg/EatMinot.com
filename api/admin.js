@@ -4,7 +4,7 @@ var L = require('./_lib');
 // POST /api/admin { password, action, ... }
 //   action: 'list' | 'photo' {id, dataUrl} | 'removePhoto' {id}
 //           | 'setFlag' {id, claimed?, paid?} | 'resetPassword' {id}
-//           | 'reset'
+//           | 'newClaimCode' {id} | 'reset'
 // Admin can manage claimed/paid status, photos, and passwords — the operational
 // levers a site needs day to day. It has no action that writes to a vote counter;
 // those only move through a real POST /api/rate.
@@ -19,8 +19,11 @@ module.exports = async function (req, res) {
       var out = list.map(function (r) {
         var o = {}; for (var k in r) o[k] = r[k];
         delete o.password;
-        o.defaultPassword = L.defaultPassword(r.name);
-        o.passwordChanged = !L.isDefaultPw(r.name, r.password);
+        // Never the hash, and never a derivable password — there is no longer one to show.
+        // The admin console gets the venue's claim code (the secret to hand the owner in
+        // person) and whether a password has been set yet. claimCode is deliberately kept
+        // here and stripped in publicView; this response is admin-authenticated.
+        o.hasPassword = !!r.password;
         return o;
       });
       L.json(res, 200, { ok: true, restaurants: out });
@@ -34,15 +37,29 @@ module.exports = async function (req, res) {
     // Push the address + hours from the built-in directory (the RAW seed) onto every
     // saved profile — used after the directory data is corrected, since a shared DB keeps
     // its own copy that a code deploy alone won't overwrite. Touches only address/hours.
+    //
+    // It will NOT overwrite a stored value with a seed placeholder. The seed still says
+    // "Verify hours" (and sometimes just "Minot, ND") for venues whose real details were
+    // filled in by hand through setInfo below, and those live only in the database. Before
+    // this guard, pressing this button replaced every one of them with "Verify hours" —
+    // a one-click wipe of exactly the work it looks like it is refreshing. A placeholder is
+    // never an improvement on something a human typed, so it is skipped.
     if (b.action === 'refreshInfo') {
       var ids = L.seedIds();
+      var updated = 0, skipped = 0;
       for (var i = 0; i < ids.length; i++) {
         var seed = L.seedProfile(ids[i]);
         if (!seed) continue;
         var sa = seed.address, sh = seed.hours;
-        await L.updateProfile(ids[i], function (r) { r.address = sa; r.hours = sh; });
+        var addrOk = !L.isPlaceholderAddress(sa), hoursOk = !L.isPlaceholderHours(sh);
+        if (!addrOk && !hoursOk) { skipped++; continue; }
+        await L.updateProfile(ids[i], function (r) {
+          if (addrOk) r.address = sa;
+          if (hoursOk) r.hours = sh;
+        });
+        updated++;
       }
-      L.json(res, 200, { ok: true, count: ids.length });
+      L.json(res, 200, { ok: true, count: ids.length, updated: updated, skipped: skipped });
       return;
     }
 
@@ -101,9 +118,26 @@ module.exports = async function (req, res) {
       L.json(res, 200, { ok: true });
       return;
     }
+    // Hands the owner a fresh random password, shown once in the response. It is not
+    // derivable from the venue, so unlike the old name-based default it can't be guessed
+    // by the next person to read the listing.
     if (b.action === 'resetPassword') {
-      await L.updateProfile(profile.id, function (r) { r.password = L.hashPw(L.defaultPassword(r.name)); });
-      L.json(res, 200, { ok: true, defaultPassword: L.defaultPassword(profile.name) });
+      // An unclaimed listing has no owner yet, and login refuses it regardless — handing
+      // out a password for one would be a dead end. Use its claim code instead.
+      if (!profile.claimed) { L.json(res, 409, { error: 'not_claimed', claimCode: profile.claimCode }); return; }
+      var newPw = L.randomPassword();
+      await L.updateProfile(profile.id, function (r) { r.password = L.hashPw(newPw); });
+      L.json(res, 200, { ok: true, password: newPw });
+      return;
+    }
+    // Issues a new claim code for a listing that has not been claimed yet — for when a
+    // printed card goes astray. Refused once a listing is claimed, since the code is
+    // spent at that point and rotating it would imply it still grants something.
+    if (b.action === 'newClaimCode') {
+      if (profile.claimed) { L.json(res, 409, { error: 'already_claimed' }); return; }
+      var code = L.randomCode();
+      await L.updateProfile(profile.id, function (r) { r.claimCode = code; });
+      L.json(res, 200, { ok: true, claimCode: code });
       return;
     }
     L.json(res, 400, { error: 'action' });

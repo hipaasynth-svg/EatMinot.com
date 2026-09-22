@@ -108,7 +108,17 @@
   }
 
   function slug(n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); }
-  function defaultPassword(n) { return slug(n) + '26'; }
+  /* Local (no-database) mode mirrors the server: there is no formula that turns a venue
+     name into a credential. A listing has no password until it is claimed with its own
+     random claim code — see api/_lib.js for the same reasoning on the server. */
+  var CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function randomCode(len) {
+    len = len || 8;
+    var out = '';
+    for (var i = 0; i < len; i++) out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    return out;
+  }
+  function normalizeCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
   // Punches-needed is owner-settable but always kept within [MIN,MAX]; anything missing or
   // out of range (including older data) falls back to the default.
   function clampPunches(n) { n = parseInt(n, 10); return (n >= MIN_PUNCHES && n <= MAX_PUNCHES) ? n : DEFAULT_PUNCHES; }
@@ -123,7 +133,8 @@
       var id = i + 1, name = row[0], claimed = id === 1;
       return {
         id: id, name: name, address: row[1], hours: row[2],
-        claimed: claimed, paid: claimed, featured: claimed, hidden: false, rewardsOn: claimed, password: defaultPassword(name),
+        claimed: claimed, paid: claimed, featured: claimed, hidden: false, rewardsOn: claimed,
+        password: null, claimCode: randomCode(),
         photo: null, hasPhoto: false,
         pickPhotos: [null, null, null], hasPickPhoto: [false, false, false],
         upvotes: 0, ratingSum: 0, ratingCount: 0, totalRatings: 0, rating: 0,
@@ -410,17 +421,23 @@
   /* ---------- owner ---------- */
   var ownerTok = {}; // id -> session token
   function ownerLogin(id, pw) {
-    if (mode === 'server') return api('owner', 'POST', { action: 'login', id: id, password: pw }).then(function (res) { if (res.ok && res.data.token) ownerTok[id] = res.data.token; return res.ok ? { ok: true, data: res.data } : { ok: false }; });
-    var lr = localFind(loadLocal(), id); return Promise.resolve(lr && pw === lr.password ? { ok: true, data: { id: lr.id, name: lr.name, paid: lr.paid } } : { ok: false });
+    if (mode === 'server') return api('owner', 'POST', { action: 'login', id: id, password: pw }).then(function (res) { if (res.ok && res.data.token) ownerTok[id] = res.data.token; return res.ok ? { ok: true, data: res.data } : { ok: false, reason: res.data && res.data.error }; });
+    // Same gates as api/owner.js: an unclaimed listing, or one with no password set, can
+    // never be logged into — there is nothing to guess.
+    var lr = localFind(loadLocal(), id);
+    if (!lr) return Promise.resolve({ ok: false, reason: 'not_found' });
+    if (!lr.claimed || !lr.password) return Promise.resolve({ ok: false, reason: 'not_claimed' });
+    return Promise.resolve(pw === lr.password ? { ok: true, data: { id: lr.id, name: lr.name, paid: lr.paid } } : { ok: false });
   }
   // First-run claim: set a password on an unclaimed listing (opened via the ?owner=<id> QR).
   // Once claimed, this closes and the owner logs in normally.
-  function ownerClaim(id, newPw) {
+  function ownerClaim(id, newPw, code) {
     id = parseInt(id, 10);
-    if (mode === 'server') return api('owner', 'POST', { action: 'claim', id: id, password: newPw }).then(function (res) { if (res.ok && res.data && res.data.token) ownerTok[id] = res.data.token; return { ok: !!res.ok, reason: res.data && res.data.error, data: res.data }; });
+    if (mode === 'server') return api('owner', 'POST', { action: 'claim', id: id, password: newPw, code: code }).then(function (res) { if (res.ok && res.data && res.data.token) ownerTok[id] = res.data.token; return { ok: !!res.ok, reason: res.data && res.data.error, data: res.data }; });
     var d = loadLocal(), lr = localFind(d, id);
     if (!lr) return Promise.resolve({ ok: false, reason: 'not_found' });
     if (lr.claimed) return Promise.resolve({ ok: false, reason: 'already_claimed' });
+    if (normalizeCode(lr.claimCode) !== normalizeCode(code)) return Promise.resolve({ ok: false, reason: 'bad_code' });
     lr.password = newPw; lr.claimed = true;
     saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: true });
@@ -554,11 +571,23 @@
     var d = loadLocal(); d.restaurants.forEach(function (lr) { var s = byId[lr.id]; if (s) { lr.address = s.address; lr.hours = s.hours; } });
     saveLocal(d); cache = decorateList(d.restaurants); return Promise.resolve({ ok: true, count: d.restaurants.length });
   }
+  // Issues a fresh setup code for an unclaimed listing (admin-only).
+  function adminNewClaimCode(pw, id) {
+    id = parseInt(id, 10);
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'newClaimCode', id: id }).then(function (res) { return { ok: res.ok, claimCode: res.data && res.data.claimCode, reason: res.data && res.data.error }; });
+    var d = loadLocal(), lr = localFind(d, id);
+    if (!lr) return Promise.resolve({ ok: false, reason: 'not_found' });
+    if (lr.claimed) return Promise.resolve({ ok: false, reason: 'already_claimed' });
+    lr.claimCode = randomCode(); saveLocal(d); cache = decorateList(d.restaurants);
+    return Promise.resolve({ ok: true, claimCode: lr.claimCode });
+  }
   function adminResetPassword(pw, id) {
-    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'resetPassword', id: id }).then(function (res) { return { ok: res.ok, defaultPassword: res.data && res.data.defaultPassword }; });
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'resetPassword', id: id }).then(function (res) { return { ok: res.ok, password: res.data && res.data.password, reason: res.data && res.data.error }; });
     var d = loadLocal(), lr = localFind(d, id); if (!lr) return Promise.resolve({ ok: false });
-    lr.password = defaultPassword(lr.name); saveLocal(d);
-    return Promise.resolve({ ok: true, defaultPassword: lr.password });
+    if (!lr.claimed) return Promise.resolve({ ok: false, reason: 'not_claimed' });
+    var np = randomCode(5) + '-' + randomCode(5);
+    lr.password = np; saveLocal(d);
+    return Promise.resolve({ ok: true, password: np });
   }
   function adminReset(pw) {
     photoCache = {};
@@ -578,12 +607,13 @@
     rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec, recordTap: recordTap, pendingTap: pendingTap,
     deviceId: function () { return loadDevice().deviceId; }, deviceBackup: deviceBackup, deviceRestore: deviceRestore, adoptDevice: adoptDevice,
     walletCaps: walletCaps, walletSave: walletSave, walletAppleUrl: walletAppleUrl, walletSync: walletSync,
+    adminNewClaimCode: adminNewClaimCode,
     ownerLogin: ownerLogin, ownerClaim: ownerClaim, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto, ownerPickPhoto: ownerPickPhoto,
     agentList: agentList, agentRun: agentRun,
     checkout: checkout, confirmUpgrade: confirmUpgrade,
     adminList: adminList, adminPhoto: adminPhoto, adminRemovePhoto: adminRemovePhoto,
     adminPickPhoto: adminPickPhoto, adminRemovePickPhoto: adminRemovePickPhoto,
     adminSetFlag: adminSetFlag, adminSetInfo: adminSetInfo, adminRefreshInfo: adminRefreshInfo, adminReset: adminReset, adminResetPassword: adminResetPassword, setAdminPasswordLocal: setAdminPasswordLocal,
-    slug: slug, defaultPassword: defaultPassword, fmtNum: fmtNum, isHappyHourNow: isHappyHourNow, to12h: to12h, fileToDataUrl: fileToDataUrl
+    slug: slug, fmtNum: fmtNum, isHappyHourNow: isHappyHourNow, to12h: to12h, fileToDataUrl: fileToDataUrl
   };
 })(window);

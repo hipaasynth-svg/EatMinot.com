@@ -77,7 +77,57 @@ var RAW = [
 ];
 
 function slug(name) { return String(name).toLowerCase().replace(/[^a-z0-9]/g, ''); }
-function defaultPassword(name) { return slug(name) + '26'; }
+
+/* ---------- claim codes and generated passwords ----------
+   There is deliberately no formula that turns a venue's name into its credential.
+   A venue's password used to be slug(name) + '26', which meant every listing on the
+   site could be logged into by anyone who could read the venue's name — the formula
+   was even published in the README. Both are now random per venue: the claim code is
+   generated once, stored on the profile, and only ever shown in the admin console, and
+   a password exists only after the real owner sets one.
+   The alphabet omits O/0/I/1 so a code can be read aloud or printed on a card without
+   being mistyped. */
+var CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function randomCode(len) {
+  len = len || 8;
+  var bytes = crypto.randomBytes(len), out = '';
+  for (var i = 0; i < len; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  return out;
+}
+// Admin "reset password" hands the owner a fresh random password once. It is never
+// derivable from the venue, so a reset can't be guessed by the next person who reads
+// the listing.
+function randomPassword() { return randomCode(5) + '-' + randomCode(5); }
+function normalizeCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+// Timing-safe comparison of two strings of possibly different lengths.
+function safeEqual(a, b) {
+  var ba = Buffer.from(String(a)), bb = Buffer.from(String(b));
+  if (ba.length !== bb.length) return false;
+  try { return crypto.timingSafeEqual(ba, bb); } catch (e) { return false; }
+}
+function verifyClaimCode(profile, code) {
+  if (!profile || !profile.claimCode) return false;
+  return safeEqual(normalizeCode(profile.claimCode), normalizeCode(code));
+}
+
+/* ---------- placeholder directory data ----------
+   Rows in RAW that were never confirmed carry a stand-in rather than real data. These
+   two predicates exist so nothing ever writes a stand-in over a real value that someone
+   filled in by hand — see api/admin.js refreshInfo, where doing exactly that used to
+   wipe every corrected set of hours back to "Verify hours" in one click. */
+function isPlaceholderHours(h) {
+  h = String(h || '').trim();
+  return !h || /verify/i.test(h);
+}
+function isPlaceholderAddress(a) {
+  a = String(a || '').trim();
+  if (!a) return true;
+  // A bare city, a vague neighbourhood, or "several branches" is not an address.
+  return /^minot,?\s*nd\.?$/i.test(a) ||
+         /^downtown\s+minot$/i.test(a) ||
+         /^multiple locations/i.test(a) ||
+         /locations,\s*minot,\s*nd$/i.test(a);
+}
 
 // Real star average (0 when there are no ratings). The client only *shows* it once a venue
 // has MIN_RATINGS verified reviews — see store.js isRated — otherwise it shows "New to EatMinot".
@@ -97,7 +147,6 @@ function verifyPw(pw, stored) {
   var p = stored.split('$');
   return crypto.createHash('sha256').update(p[1] + ':' + pw).digest('hex') === p[2];
 }
-function isDefaultPw(name, stored) { return verifyPw(defaultPassword(name), stored); }
 
 /* ---------- signed owner session tokens (HMAC) ----------
    If EAT_SESSION_SECRET isn't set, sign with a random secret generated once per cold
@@ -149,7 +198,12 @@ function seedProfile(id) {
     // AI Assistant (beta) — always starts off; only a super admin can turn it on per venue
     // (see api/admin.js setFlag), independent of claimed/paid. Not a Stripe-gated tier yet.
     agentEnabled: false,
-    password: hashPw(defaultPassword(name)),
+    // No password until the real owner sets one through the claim flow (see api/owner.js).
+    // A null password cannot be logged into at all — there is nothing to guess.
+    password: null,
+    // The one secret that lets a listing be claimed. Random, stored, admin-visible only,
+    // and stripped from every public response by publicView below.
+    claimCode: randomCode(),
     stripeCustomerId: null, stripeSubscriptionId: null,
     hasPhoto: false, hasPickPhoto: [false, false, false],
     picks: claimed ? ['Fried Chicken Sandwich', 'Loaded Tots', 'House IPA'] : ['', '', ''],
@@ -223,13 +277,33 @@ function normalizeProfile(p) {
   // Profiles saved before this beta existed default OFF regardless of claimed/paid —
   // an admin must explicitly opt each venue in while it's being tested.
   if (typeof p.agentEnabled !== 'boolean') p.agentEnabled = false;
+  // Profiles written before claim codes existed get one on first read (getProfile and
+  // getAllRestaurants persist it), so an already-live listing becomes claimable with a
+  // real code instead of the old name-derived password.
+  if (typeof p.claimCode !== 'string' || !p.claimCode) p.claimCode = randomCode();
+  // A stored password that predates this change is a hash of the old derivable default
+  // for any listing nobody has claimed, so it must not stay usable. login() refuses an
+  // unclaimed profile outright; dropping the hash here means it cannot be used even if
+  // the listing is later marked claimed by an admin.
+  if (!p.claimed) p.password = null;
   return p;
 }
 async function getProfile(id) {
   id = parseInt(id, 10);
   if (isRemoved(id)) return null; // pulled venue: never resurface via ?r=<id>, owner login, or photo fetch
   var raw = await kvGet(rKey(id));
-  if (raw) { try { return normalizeProfile(JSON.parse(raw)); } catch (e) { /* fall through to reseed */ } }
+  if (raw) {
+    try {
+      var stored = JSON.parse(raw);
+      var hadCode = typeof stored.claimCode === 'string' && !!stored.claimCode;
+      var prof = normalizeProfile(stored);
+      // normalizeProfile mints a claim code for records written before they existed.
+      // It has to be written back, or the next read mints a different one and the code
+      // the admin console just displayed would already be wrong.
+      if (!hadCode) await saveProfile(id, prof);
+      return prof;
+    } catch (e) { /* fall through to reseed */ }
+  }
   var def = seedProfile(id);
   if (!def) return null;
   await kvSet(rKey(id), JSON.stringify(def));
@@ -295,7 +369,14 @@ async function getAllRestaurants() {
   for (var j = 0; j < ids.length; j++) {
     var profRaw = results[j * 2], votesFlat = results[j * 2 + 1];
     var profile = null;
-    if (profRaw) { try { profile = normalizeProfile(JSON.parse(profRaw)); } catch (e) {} }
+    if (profRaw) {
+      try {
+        var stored2 = JSON.parse(profRaw);
+        var hadCode2 = typeof stored2.claimCode === 'string' && !!stored2.claimCode;
+        profile = normalizeProfile(stored2);
+        if (!hadCode2) toSeed.push(profile); // persist the freshly minted claim code
+      } catch (e) {}
+    }
     if (!profile) { profile = seedProfile(ids[j]); toSeed.push(profile); }
     out2.push(mergeProfileVotes(profile, flatToObj(votesFlat, ZERO_VOTES)));
   }
@@ -320,6 +401,7 @@ function publicView(list) {
     restaurants: list.filter(function (r) { return !r.hidden; }).map(function (r) {
       var o = {}; for (var k in r) o[k] = r[k];
       delete o.password;
+      delete o.claimCode; // the claim secret: admin-only, never in a public response
       o.rating = avgRating(r);
       return o;
     })
@@ -372,13 +454,15 @@ function json(res, code, obj) {
 }
 
 var ADMIN_DEFAULT = 'minot-admin';
-function checkAdmin(pw) { return pw === (process.env.EAT_ADMIN_PASSWORD || ADMIN_DEFAULT); }
+function checkAdmin(pw) { return safeEqual(pw, process.env.EAT_ADMIN_PASSWORD || ADMIN_DEFAULT); }
 
 module.exports = {
   PHOTO_KEY: PHOTO_KEY, PICK_PHOTO_KEY: PICK_PHOTO_KEY,
-  seedIds: seedIds, seedProfile: seedProfile, slug: slug, defaultPassword: defaultPassword,
+  seedIds: seedIds, seedProfile: seedProfile, slug: slug,
   clampPunches: clampPunches, avgRating: avgRating,
-  hashPw: hashPw, verifyPw: verifyPw, isDefaultPw: isDefaultPw,
+  hashPw: hashPw, verifyPw: verifyPw,
+  randomCode: randomCode, randomPassword: randomPassword, verifyClaimCode: verifyClaimCode,
+  isPlaceholderHours: isPlaceholderHours, isPlaceholderAddress: isPlaceholderAddress,
   signToken: signToken, verifyToken: verifyToken,
   persistent: persistent, hasKV: hasKV,
   kvGet: kvGet, kvSet: kvSet, kvDel: kvDel,
