@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Minot Field Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Why EatMinot and DrinkMinot were built, who they are for, how to run them, and where they are going.">
+<style>
+  :root {
+    --paper:#FBF7F0; --card:#F2E8D9; --card-edge:#E6D6BE;
+    --espresso:#3A2A20; --ink:#4A392E; --caramel:#B4762F; --caramel-deep:#8F5A1F;
+    --stone:#7C7267; --sage:#5E7D53; --sage-soft:#EAF0E4; --sage-edge:#CBDBC0;
+    --rust:#A8442B; --rust-soft:#F7E8E3; --rust-edge:#E8C9BF;
+    --fold:#D9C7AA;
+    --maxw:820px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#221913; --card:#2E2219; --card-edge:#453324;
+      --espresso:#F3E7D6; --ink:#E4D5C3; --caramel:#D89547; --caramel-deep:#E9AC63;
+      --stone:#A99B8B; --sage:#93B285; --sage-soft:#26301F; --sage-edge:#3C4A32;
+      --rust:#E08A6B; --rust-soft:#33211B; --rust-edge:#4E2F24; --fold:#4A3826;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#221913; --card:#2E2219; --card-edge:#453324;
+    --espresso:#F3E7D6; --ink:#E4D5C3; --caramel:#D89547; --caramel-deep:#E9AC63;
+    --stone:#A99B8B; --sage:#93B285; --sage-soft:#26301F; --sage-edge:#3C4A32;
+    --rust:#E08A6B; --rust-soft:#33211B; --rust-edge:#4E2F24; --fold:#4A3826;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    line-height:1.62; -webkit-font-smoothing:antialiased;
+    font-size:16px;
+  }
+  .rounded{font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,sans-serif}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 16px}
+
+  /* ---- cover ---- */
+  .cover{padding:64px 0 52px; text-align:center; border-bottom:2px solid var(--card-edge)}
+  .wordmark{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    font-weight:800; letter-spacing:-.02em; line-height:1; font-size:clamp(26px,7vw,40px)}
+  .wordmark .a{color:var(--espresso)} .wordmark .b{color:var(--caramel)} .wordmark .c{color:var(--stone)}
+  .cover .tag{color:var(--stone); font-weight:700; letter-spacing:.09em; font-size:12px;
+    text-transform:uppercase; margin-top:10px}
+  .cover h1{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color:var(--espresso); font-weight:800; font-size:clamp(25px,6vw,38px); line-height:1.14;
+    letter-spacing:-.015em; text-wrap:balance; margin:30px auto 14px; max-width:19em}
+  .cover p.lede{font-size:clamp(15px,2.4vw,17.5px); color:var(--ink); max-width:34em;
+    margin:0 auto; text-wrap:pretty}
+  .stamp{display:inline-block; margin-top:26px; background:var(--caramel); color:#FBF7F0;
+    font-weight:800; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    padding:7px 16px; border-radius:999px}
+
+  /* ---- sections ---- */
+  section{padding:44px 0; border-bottom:1px solid var(--card-edge)}
+  section:last-of-type{border-bottom:none}
+  .eyebrow{font-size:10.5px; font-weight:800; letter-spacing:.17em; text-transform:uppercase;
+    color:var(--caramel-deep); margin-bottom:9px}
+  h2{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color:var(--espresso); font-size:clamp(21px,4.2vw,28px); font-weight:800;
+    letter-spacing:-.015em; line-height:1.2; margin:0 0 14px; text-wrap:balance}
+  h3{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color:var(--espresso); font-size:17px; font-weight:800; margin:26px 0 7px; letter-spacing:-.01em}
+  h4{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color:var(--espresso); font-size:14.5px; font-weight:800; margin:0 0 5px}
+  p{margin:0 0 13px; text-wrap:pretty}
+  a{color:var(--caramel-deep); font-weight:600}
+  strong{color:var(--espresso)}
+  .pull{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color:var(--espresso); font-weight:800; font-size:clamp(17px,3vw,21px); line-height:1.34;
+    border-left:4px solid var(--caramel); padding:4px 0 4px 18px; margin:24px 0; text-wrap:balance}
+
+  /* ---- audience cards ---- */
+  .who{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); margin-top:20px}
+  .who div{background:var(--card); border:1px solid var(--card-edge); border-radius:13px; padding:17px 18px}
+  .who p{font-size:14.5px; margin:0}
+  .who .k{font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--caramel-deep); display:block; margin-bottom:5px}
+
+  /* ---- rules ---- */
+  .rules{display:grid; gap:15px; margin-top:20px; counter-reset:rule}
+  .rule{display:grid; grid-template-columns:34px 1fr; gap:14px; align-items:start}
+  .rule .n{counter-increment:rule; font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    font-weight:800; font-size:15px; color:#FBF7F0; background:var(--caramel);
+    width:34px; height:34px; border-radius:50%; display:grid; place-items:center}
+  .rule .n::before{content:counter(rule)}
+  .rule p{font-size:14.5px; margin:0}
+
+  /* ---- steps ---- */
+  .steps{display:grid; gap:16px; margin-top:18px}
+  .step{background:var(--card); border:1px solid var(--card-edge); border-left:4px solid var(--caramel);
+    border-radius:0 12px 12px 0; padding:15px 17px}
+  .step p{font-size:14.5px; margin:0}
+  .step .lbl{font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--caramel-deep); display:block; margin-bottom:4px}
+
+  /* ---- tables ---- */
+  .tw{overflow-x:auto; margin:18px 0; -webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse; width:100%; min-width:460px; font-size:14px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--card-edge); vertical-align:top}
+  th{font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--caramel-deep);
+    font-weight:800; border-bottom:2px solid var(--card-edge); white-space:nowrap}
+  td.n{white-space:nowrap; font-variant-numeric:tabular-nums}
+  .yes{color:var(--sage); font-weight:800}
+  .no{color:var(--rust); font-weight:800}
+
+  /* ---- callouts ---- */
+  .note{border-radius:13px; padding:16px 18px; margin:20px 0; font-size:14.5px}
+  .note p:last-child{margin-bottom:0}
+  .note .h{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    font-weight:800; font-size:13px; letter-spacing:.04em; text-transform:uppercase; display:block; margin-bottom:6px}
+  .straight{background:var(--rust-soft); border:1px solid var(--rust-edge)}
+  .straight .h{color:var(--rust)}
+  .good{background:var(--sage-soft); border:1px solid var(--sage-edge)}
+  .good .h{color:var(--sage)}
+
+  /* ---- roadmap ---- */
+  .horizon{background:var(--card); border:1px solid var(--card-edge); border-radius:13px;
+    padding:18px 19px; margin-bottom:16px}
+  .horizon .when{font-size:10.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--caramel-deep)}
+  .horizon h3{margin:4px 0 4px}
+  .horizon .why{font-size:13.5px; color:var(--stone); font-style:italic; margin:0 0 12px}
+  .horizon ul{margin:0; padding-left:0; list-style:none; display:grid; gap:9px}
+  .horizon li{display:grid; grid-template-columns:16px 1fr; gap:9px; font-size:14.5px; align-items:start}
+  .horizon li .t{color:var(--caramel); font-weight:900; line-height:1.4}
+
+  /* ---- candidate features ---- */
+  .cand{border:1px solid var(--card-edge); border-radius:13px; padding:17px 18px; margin-bottom:14px;
+    background:var(--paper)}
+  .cand .top{display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; margin-bottom:6px}
+  .cand h4{margin:0}
+  .pill{font-size:9.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; white-space:nowrap}
+  .p-hi{background:var(--sage); color:#FBF7F0}
+  .p-mid{background:var(--caramel); color:#FBF7F0}
+  .p-new{background:var(--card); color:var(--caramel-deep); border:1px solid var(--card-edge)}
+  .cand p{font-size:14.5px; margin:0 0 8px}
+  .cand .mech{font-size:13.5px; color:var(--stone); margin:0}
+  .cand .mech b{color:var(--espresso)}
+
+  /* ---- back ---- */
+  .back{text-align:center; padding:48px 0 60px}
+  .back .call{font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;
+    color:var(--espresso); font-weight:800; font-size:clamp(19px,3.6vw,25px); line-height:1.22;
+    text-wrap:balance; margin:0 auto 16px; max-width:22em}
+  .back .contact{font-size:15px}
+  .foot{color:var(--stone); font-size:10px; letter-spacing:.09em; text-transform:uppercase;
+    font-weight:700; border-top:1.5px solid var(--card-edge); padding-top:16px; margin-top:32px}
+
+  @media print {
+    body{background:#fff; font-size:11pt}
+    section{page-break-inside:avoid}
+    .cover{page-break-after:always}
+    @page{margin:0.6in}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="cover">
+    <div class="wordmark rounded"><span class="a">Eat</span><span class="b">Minot</span><span class="c">.com</span>
+      &nbsp;·&nbsp;
+      <span class="a">Drink</span><span class="b">Minot</span></div>
+    <div class="tag rounded">tap · rate · earn</div>
+    <h1>Word-of-mouth belongs to the people who actually showed up.</h1>
+    <p class="lede">Why these two sites exist, who they are for, how to run them,
+      and exactly what we are building next. Written for the owners, the locals,
+      and anyone deciding whether to trust it.</p>
+    <span class="stamp">Field guide · Edition one · September 2026</span>
+  </header>
+
+  <!-- ============ WHY ============ -->
+  <section>
+    <div class="eyebrow">Why this was created</div>
+    <h2>A town of 48,000 was being rated by people who had never been here.</h2>
+
+    <p>Every restaurant and bar in Minot lives or dies by a number it does not control.
+      That number is assembled on national platforms, out of reviews that can be left by
+      someone who never walked in — a competitor, a bot farm, a person who got the wrong
+      order two years ago in a different city, a paid reviewer in another country. The
+      venue's only recourse is to pay the same platform for ads.</p>
+
+    <p>Meanwhile the rating that actually decides where people in Minot eat on a Friday
+      is the one nobody can see: what your cousin said, what the guy at work said, what
+      your barber said. <strong>Real word-of-mouth is already the most accurate rating
+      system in town.</strong> It just has no scoreboard, so it can't be measured, can't
+      be trusted by a newcomer, and can't help an owner prove anything.</p>
+
+    <p class="pull">We built one rule and then built everything else around it: you can only
+      rate a place you physically walked into.</p>
+
+    <p>That single constraint is the entire product. It cannot be gamed from out of town,
+      it cannot be farmed, and it cannot be bought — which is exactly why no national
+      platform will ever adopt it. Their business needs volume. A town needs the truth.</p>
+
+    <h3>And the second reason, which matters more to us than the first</h3>
+    <p>We build software for people the systems do not see. Our other work is about
+      protecting people with no medical records from healthcare AI that treats a missing
+      record as a missing person. This is the same problem wearing an apron: a good
+      restaurant with no reviews reads to an algorithm as a bad restaurant. Absence gets
+      scored as failure.</p>
+    <p>So the same rule holds in both places — <strong>the system must not punish you for
+      being unmeasured, and it must not measure you by watching you.</strong> No accounts.
+      No email harvesting. No ad profile. Your phone is the only thing that remembers you,
+      and it remembers a random number, not your name.</p>
+  </section>
+
+  <!-- ============ WHO ============ -->
+  <section>
+    <div class="eyebrow">Who it is for</div>
+    <h2>Four people, and the site is built for all four at once.</h2>
+    <div class="who">
+      <div>
+        <span class="k">The local</span>
+        <p>You already know where to eat. You want a scoreboard that agrees with you, a
+          punch card that doesn't live in your wallet, and no app to download. You tap a
+          tag on the table. That's the whole interaction.</p>
+      </div>
+      <div>
+        <span class="k">The owner</span>
+        <p>You are good at your business and tired of paying rent on your own reputation.
+          You want ratings that can't be faked, repeat customers you can see coming back,
+          and one dashboard — not an agency.</p>
+      </div>
+      <div>
+        <span class="k">The newcomer</span>
+        <p>Minot Air Force Base turns over constantly. Every month there are people here
+          who know nobody and have to guess where to eat. They are the audience national
+          reviews serve worst, and the one a verified local list serves best.</p>
+      </div>
+      <div>
+        <span class="k">The town</span>
+        <p>Money spent at a locally-owned place stays here. A directory that only counts
+          real visits is, structurally, a machine for pointing local money at local
+          businesses.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE RULES ============ -->
+  <section>
+    <div class="eyebrow">How it works</div>
+    <h2>Three rules that decide every design question.</h2>
+    <div class="rules">
+      <div class="rule"><div class="n rounded"></div><div>
+        <h4>You rate where you stood.</h4>
+        <p>A rating begins by tapping the NFC tag on your table or scanning its QR code.
+          That tag opens straight to that one venue. There is no rating control anywhere
+          else on the site — not in the carousel, not in search, nowhere. Presence is not
+          a policy we ask you to respect; it is the only door in.</p>
+      </div></div>
+      <div class="rule"><div class="n rounded"></div><div>
+        <h4>There is no thumbs-down.</h4>
+        <p>A bad night at a good restaurant should not become a permanent number. You can
+          give stars without an upvote, so quality gets recorded without a pile-on. And a
+          star average stays hidden until a venue has at least three verified ratings, so
+          one person can never set the score.</p>
+      </div></div>
+      <div class="rule"><div class="n rounded"></div><div>
+        <h4>We do not know who you are.</h4>
+        <p>No account, no email, no phone number, no app. Your punch card lives on your
+          phone under a random token. You can move it to Apple or Google Wallet and it
+          follows you to a new phone — still without ever telling us a name.</p>
+      </div></div>
+    </div>
+
+    <div class="note straight">
+      <span class="h">Where we are honest with you</span>
+      <p>Rule 1 is how the app is built today: the rating screen only opens from a real
+        tag URL. But the strength of that rule right now is the design, not yet the
+        plumbing — the check happens on the phone, not on our server. That means a
+        determined person who understands the web could still push a rating without
+        visiting.</p>
+      <p>We are not going to print "impossible to fake" on a pamphlet before it is
+        cryptographically true. <strong>Signed tags and a server-side daily limit are the
+        first item on the roadmap below</strong> — not a someday item, the next thing we
+        ship. When it lands, this box gets replaced by the stronger claim, and we will
+        say so on the day.</p>
+    </div>
+  </section>
+
+  <!-- ============ USER GUIDE ============ -->
+  <section>
+    <div class="eyebrow">User guide</div>
+    <h2>If you're eating here.</h2>
+    <div class="steps">
+      <div class="step"><span class="lbl">Step one</span>
+        <p><strong>Tap the tag.</strong> Hold your phone near the tag on the table, or point
+          your camera at the QR code. No app, no install. The venue's page opens.</p></div>
+      <div class="step"><span class="lbl">Step two</span>
+        <p><strong>Rate in two taps.</strong> Thumbs-up, then a star rating. Or choose
+          "stars only" to score the food without endorsing the visit. One rating per venue
+          per day.</p></div>
+      <div class="step"><span class="lbl">Step three</span>
+        <p><strong>Collect the punch.</strong> Each visit fills your card for that venue.
+          Fill it and you get a redemption code for whatever reward the owner set — shown
+          to staff, no printing, no plastic.</p></div>
+      <div class="step"><span class="lbl">Step four</span>
+        <p><strong>Move it to your wallet.</strong> Add the card to Apple or Google Wallet
+          and it survives a wiped browser or a new phone. The Google card updates its own
+          balance after every punch.</p></div>
+    </div>
+
+    <h2 style="margin-top:38px">If you own the place.</h2>
+    <div class="steps">
+      <div class="step"><span class="lbl">Getting in</span>
+        <p><strong>Claim your listing</strong> with the one-time code that comes with your
+          tags, then set your own password. Lost it? Email us and we reset it — we cannot
+          read it, only replace it.</p></div>
+      <div class="step"><span class="lbl">Your billboard</span>
+        <p><strong>Three top picks with photos.</strong> This is the "what should I get"
+          answer, in your words rather than a stranger's. It shows on the page a tag opens.</p></div>
+      <div class="step"><span class="lbl">Happy hour</span>
+        <p><strong>Set days, a start, an end and one line of text.</strong> A neon
+          "Happy Hour Now" marker switches itself on and off by the clock. Set it once.</p></div>
+      <div class="step"><span class="lbl">Your reward</span>
+        <p><strong>Choose the reward and how many punches earn it</strong> (two to five).
+          Short cards fill faster and bring people back sooner; that is the whole lever.</p></div>
+      <div class="step"><span class="lbl">The spotlight</span>
+        <p><strong>Minot's Most Wanted</strong> is a curated page with three spotlight
+          slots. If you're in one, you write the exclusive offer that appears there.</p></div>
+    </div>
+
+    <div class="tw">
+      <table>
+        <caption style="text-align:left;font-size:12.5px;color:var(--stone);padding-bottom:9px">
+          What each tier can change, as the software actually enforces it today.</caption>
+        <thead><tr><th>Control</th><th>Unclaimed</th><th>Claimed · free</th><th>Claimed · $59/mo</th></tr></thead>
+        <tbody>
+          <tr><td>Appear in the directory</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Collect verified ratings</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Top picks, note, website</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Happy hour schedule</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Reward &amp; punches needed</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Change your photo</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><td>Publish the picks billboard</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px;color:var(--stone)">A punch card only goes live once we have
+      confirmed with the venue that they will honour the reward. We will not print a promise
+      somebody else has to keep.</p>
+  </section>
+
+  <!-- ============ WHERE IT STANDS ============ -->
+  <section>
+    <div class="eyebrow">Where it stands today</div>
+    <h2>The real numbers, not the brochure ones.</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th></th><th>EatMinot</th><th>DrinkMinot</th></tr></thead>
+        <tbody>
+          <tr><td>Venues in the directory</td><td class="n">47</td><td class="n">29</td></tr>
+          <tr><td>Held back pending a photo</td><td class="n">5</td><td class="n">37</td></tr>
+          <tr><td>Still needing confirmed hours</td><td class="n">15</td><td class="n">21</td></tr>
+          <tr><td>Still needing a street address</td><td class="n">3</td><td class="n">23</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>DrinkMinot is the younger twin and it shows. Most of its live venues currently say
+      "Minot, ND" where a street address belongs. Nobody returns to a directory that can't
+      tell them where a bar is, so <strong>filling that in is the first job on the list
+      below</strong> — ahead of every new feature, because a new feature on top of thin
+      data just spreads the thinness.</p>
+    <div class="note good">
+      <span class="h">What we will not do to make these numbers look better</span>
+      <p>No seeded ratings. No imported reviews. No "estimated" star averages. Every number
+        on either site got there because somebody stood in the building and tapped a tag.
+        An empty rating count is the honest answer to a new venue, and we would rather show
+        it than invent one.</p>
+    </div>
+  </section>
+
+  <!-- ============ ROADMAP ============ -->
+  <section>
+    <div class="eyebrow">Roadmap</div>
+    <h2>What we are building, in the order we are building it.</h2>
+    <p>This order comes from a full audit of our own code, not from what would demo best.
+      The unglamorous items are first on purpose.</p>
+
+    <div class="horizon">
+      <div class="when">Now · next few weeks</div>
+      <h3>Make the promise structural</h3>
+      <p class="why">Every claim on this pamphlet should be enforced by the server, not by good manners.</p>
+      <ul>
+        <li><span class="t">→</span><span><strong>Signed tags.</strong> Each tag carries a
+          cryptographic signature the server checks. A rating without a valid tag signature
+          is refused, full stop — no longer a browser-side check.</span></li>
+        <li><span class="t">→</span><span><strong>Server-side daily limit.</strong> The
+          one-per-venue-per-day rule moves off the phone and into the database, where
+          clearing your cache can't reset it.</span></li>
+        <li><span class="t">→</span><span><strong>One-time claim codes.</strong> Listings
+          get claimed with a single-use code handed over in person with the tags, replacing
+          the current predictable default password.</span></li>
+        <li><span class="t">→</span><span><strong>The punch moves to the visit.</strong>
+          Your card fills when you tap the tag, not when you submit a rating. Rewards should
+          never be payment for feedback — we would rather have fewer ratings that mean
+          something.</span></li>
+        <li><span class="t">→</span><span><strong>Fix the data.</strong> Addresses and hours
+          for all 44 venues missing them, and an admin tool on DrinkMinot to keep them
+          correct.</span></li>
+      </ul>
+    </div>
+
+    <div class="horizon">
+      <div class="when">Next · this quarter</div>
+      <h3>Show the owner what it did</h3>
+      <p class="why">Nobody should renew on faith. Today we cannot show them a single number, and that is our fault.</p>
+      <ul>
+        <li><span class="t">→</span><span><strong>A monthly report on your dashboard.</strong>
+          Taps, returning phones, cards filled, rewards redeemed, spotlight views. Counts
+          only — never a person, never a profile, never anything we could sell.</span></li>
+        <li><span class="t">→</span><span><strong>Photos for the 37 held-back venues</strong>,
+          so the drinks directory stops looking like a smaller town than it is.</span></li>
+        <li><span class="t">→</span><span><strong>A real trial, enforced by the billing
+          system</strong> rather than by us remembering. The founding offer should be a
+          setting, not a promise.</span></li>
+        <li><span class="t">→</span><span><strong>An age gate on DrinkMinot</strong>, and a
+          written answer on North Dakota's rules for alcohol promotions before we sign a
+          single bar. A venue's liquor licence is not ours to gamble.</span></li>
+      </ul>
+    </div>
+
+    <div class="horizon">
+      <div class="when">Then · once the base is solid</div>
+      <h3>Give people a reason to go somewhere new</h3>
+      <p class="why">Verified ratings tell you where to go back. Nothing yet tells you where to go next — that is the growth engine, and it is deliberately last.</p>
+      <ul>
+        <li><span class="t">→</span><span>The candidate features overleaf, chosen with the
+          owners who are actually running tags rather than guessed at from here.</span></li>
+        <li><span class="t">→</span><span><strong>Tests on the parts that handle money and
+          passwords</strong>, and a backup of the ratings database. The verified ratings are
+          the one thing in this business that cannot be rebuilt.</span></li>
+        <li><span class="t">→</span><span><strong>One shared codebase for both sites.</strong>
+          Right now a fix has to be written twice, which is how one of the two ends up
+          missing it.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ CANDIDATES ============ -->
+  <section>
+    <div class="eyebrow">New features · under discussion</div>
+    <h2>Seven ways to get more heads through more doors.</h2>
+    <p>These are candidates, not commitments, and they are printed here on purpose: we would
+      rather argue about them with the people whose rent depends on the answer. Each one is
+      judged on a single question — <strong>does it move a human being through a door
+      tonight?</strong> A feature that only makes the site nicer does not make the list.</p>
+
+    <div class="note straight">
+      <span class="h">Draft — this section is the opening bid, not the answer</span>
+      <p>The seven below were written as a starting point to react to. They have not yet been
+        through the conversation that decides them: with the owners running tags, and with
+        what we know about this town that no amount of looking at our own code will tell us.
+        <strong>Expect this section to change before the edition anyone gets handed.</strong>
+        Everything before it — why this exists, who it is for, how to use it, and the
+        roadmap — is settled.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>1. The Magic City Passport</h4>
+        <span class="pill p-hi">Highest conviction</span></div>
+      <p>One card across many venues instead of one card per venue. Tap five different
+        downtown places in a month and earn a town-wide reward. It is the only mechanic here
+        that sends a person somewhere they have never been — a single-venue punch card can
+        only reward a habit that already exists.</p>
+      <p class="mech"><b>Why it earns:</b> venues pay to be a stop on the passport, because
+        the passport is provably sending them strangers. <b>The risk:</b> it needs enough
+        venues signed to feel like a real route, so it cannot launch early or it launches
+        empty.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>2. What's on in Minot, tonight</h4>
+        <span class="pill p-hi">Highest conviction</span></div>
+      <p>A clean local events page — the thing this town genuinely does not have in one
+        place. Every event belongs to a venue, so the listing that answers "what is there to
+        do" also answers "where will I be at eight". It is the only feature here that brings
+        in people who had no venue in mind, which makes it the top of the whole funnel.</p>
+      <p class="mech"><b>Head start:</b> the events feed is already built and running on
+        DrinkMinot — it has simply never been shown to the public. <b>The work</b> is the
+        page and the curation habit, not the plumbing.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>3. Happy hour, right now, everywhere</h4>
+        <span class="pill p-mid">Strong, and cheap</span></div>
+      <p>One live page: every venue whose happy hour is running this minute, ordered by when
+        it ends. Each venue already tells us its schedule and we already do the clock maths
+        per venue — nobody has assembled it into the city-wide answer, which is the version
+        people would check daily.</p>
+      <p class="mech"><b>Why it matters:</b> a daily-return reason costs us almost nothing to
+        build and is the cheapest habit we can buy.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>4. Open right now</h4>
+        <span class="pill p-mid">Strong, and cheap</span></div>
+      <p>At nine on a weeknight the only question anyone in Minot is asking is who is still
+        serving. Answering it needs no new data — only the confirmed hours from the roadmap
+        above, which is one more reason that unglamorous job is first.</p>
+      <p class="mech"><b>Dependency:</b> worthless until the 44 missing sets of hours are
+        filled. Genuinely valuable the day they are.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>5. New to Minot</h4>
+        <span class="pill p-mid">Distinctive to this town</span></div>
+      <p>A guide built for the people who arrive at the base every month knowing nobody, and
+        their families. They are the audience national reviews fail hardest — they have no
+        local network to ask — and they are the audience a verified local list serves best.
+        Venues could run offers aimed at them specifically.</p>
+      <p class="mech"><b>Why us:</b> nobody else can build this, because nobody else has
+        ratings that are provably from locals. <b>The care needed:</b> it has to be built
+        with the base community, not marketed at it.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>6. The cold-night push</h4>
+        <span class="pill p-new">Clever, needs a look</span></div>
+      <p>It is minus twenty and half the town is deciding whether to leave the house. That is
+        the exact moment a venue would pay to say "warm room, half-price appetisers, we are
+        open". We already read the forecast for the owner's assistant. What we have never had
+        is a way to reach a customer — because we deliberately collect no email and no phone
+        number.</p>
+      <p class="mech"><b>The insight:</b> the wallet pass already on their phone <em>is</em> a
+        notification channel. Apple and Google both allow a pass to update itself and appear
+        on a lock screen. <b>A message channel we never had to harvest an identity to
+        build</b> — and one to use sparingly, because the fastest way to lose it is to
+        overuse it.</p>
+    </div>
+
+    <div class="cand">
+      <div class="top"><h4>7. Front desk to front door</h4>
+        <span class="pill p-new">Nearly free</span></div>
+      <p>Every hotel in Minot is asked "where should we eat" several times a night, and
+        answers from memory. A co-branded card at the front desk turns that into a real
+        recommendation — and the software already supports per-hotel co-branding on the
+        curated page; it has just never been given to a hotel.</p>
+      <p class="mech"><b>Cost to try:</b> a stack of printed cards and a conversation.
+        <b>What it tests:</b> whether out-of-town traffic converts, before we build anything
+        bigger for it.</p>
+    </div>
+
+    <div class="note straight">
+      <span class="h">The trap we are steering around</span>
+      <p>Every idea above is a way to get someone through a door. None of them is a way to
+        make a rating count for more than it should. The moment we reward ratings instead of
+        visits, or let a venue buy a number, the scoreboard becomes exactly the thing we
+        built this to replace — and it would be worth nothing to the next owner we ask to
+        trust it.</p>
+    </div>
+  </section>
+
+  <!-- ============ BACK ============ -->
+  <footer class="back">
+    <div class="wordmark rounded" style="font-size:22px">
+      <span class="a">Eat</span><span class="b">Minot</span><span class="c">.com</span></div>
+    <p class="call" style="margin-top:22px">Tell us which of the seven matters on your
+      slowest night. That is the one we build.</p>
+    <div class="contact">
+      <div><a href="mailto:cody@eatminot.com">cody@eatminot.com</a> ·
+        <a href="mailto:cody@drinkminot.com">cody@drinkminot.com</a></div>
+    </div>
+    <div class="foot wrap">Zero tracking · 100 percent local · Built in Minot, North Dakota</div>
+  </footer>
+
+</div>
+</html>
