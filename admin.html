@@ -64,6 +64,7 @@
 
   <div id="panel" style="display:none">
     <div class="note" id="modeNote"></div>
+    <div class="note" id="tagBanner" style="display:none;border-width:1px;border-style:solid"></div>
     <div class="tools">
       <input type="text" id="search" placeholder="Search restaurants…">
       <button class="btn ghost" id="refreshInfo">Refresh hours from directory</button>
@@ -84,23 +85,74 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
   function foundingTaken(){ return all.filter(function(x){return x.founding||x.foundingOffer;}).length; }
+  // Says plainly whether ratings are cryptographically gated yet. Without this the
+  // state is invisible and "verified presence" is an assumption rather than a fact.
+  function renderTagBanner(meta){
+    var el = document.getElementById('tagBanner');
+    if(!el) return;
+    if(!meta || !meta.tagSigAvailable){
+      el.style.display='block';
+      el.style.background='#F7E8E3'; el.style.borderColor='#E8C9BF'; el.style.color='#A8442B';
+      el.innerHTML = '<b>Tag signatures are not configured.</b> Ratings are accepted without proof of presence. '+
+        'Set <code>EAT_TAG_SECRET</code> in Vercel to a long random string, redeploy, then reprogram the tags using the links below.';
+      return;
+    }
+    if(!meta.tagSigEnforced){
+      el.style.display='block';
+      el.style.background='#FDF3E3'; el.style.borderColor='#E8D5AE'; el.style.color='#8F5A1F';
+      el.innerHTML = '<b>Tag signatures are issued but not yet required.</b> Old tags (no <code>&amp;t=</code>) still work, so nothing is broken mid-migration. '+
+        'Once every tag below has been reprinted or reprogrammed, set <code>EAT_REQUIRE_TAG_SIG=1</code> in Vercel to start refusing unsigned ratings.';
+      return;
+    }
+    el.style.display='block';
+    el.style.background='#E8F3EA'; el.style.borderColor='#B9DDC0'; el.style.color='#2F6B3F';
+    el.innerHTML = '<b>Tag signatures are required.</b> A rating without a valid tag signature is refused. Any tag still carrying a bare <code>/?r=&lt;id&gt;</code> link will no longer work — reprogram it from the link below.';
+  }
+
+  /* Redemption readiness and the only hard number the loyalty card produces: how many
+     rewards were issued versus actually handed over. Derived from the coupon records, so
+     it cannot drift. A venue with rewards on but no staff PIN is called out, because in
+     that state a customer can earn a reward that nobody is able to redeem. */
+  function rewardsLine(r){
+    if(!r.rewardsOn) return '';
+    var st = couponStats && couponStats[r.id];
+    var pin = r.hasStaffPin
+      ? '<b style="color:#2F6B3F">staff PIN set</b>'
+      : '<b style="color:#B3341E">no staff PIN — rewards cannot be redeemed</b>';
+    var nums = st
+      ? ' · ' + st.issued + ' issued, <b>' + st.redeemed + ' redeemed</b>' +
+        (st.outstanding ? ', ' + st.outstanding + ' outstanding' : '') +
+        (st.expired ? ', ' + st.expired + ' expired' : '')
+      : '';
+    return '<div class="pw">Rewards: ' + pin + nums + '</div>';
+  }
 
   function render(){
     var q=($('#search').value||'').toLowerCase();
     var rs=all.filter(function(r){return r.name.toLowerCase().indexOf(q)>-1;});
     $('#list').innerHTML=rs.map(function(r){
-      var def = r.defaultPassword || S.defaultPassword(r.name);
-      var changed = (r.passwordChanged!==undefined) ? r.passwordChanged : (r.password!==undefined && r.password!==def);
-      var pwLine = changed
-        ? 'Owner password: <b>changed by owner</b> · <span class="chip" data-rmpw="'+r.id+'">Reset to default</span>'
-        : 'Owner password: <code class="pwval" data-pwval="'+esc(def)+'">••••••••</code> <span class="chip" data-showpw="'+r.id+'">Show</span>';
-      var tagUrl = location.origin + '/?r=' + r.id;
+      // There is no longer any password derived from the venue name. An unclaimed listing
+      // is onboarded with its own random setup code (hand it over with the tags); a claimed
+      // one can only have a fresh random password generated, shown once.
+      var setupUrl = location.origin + '/?owner=' + r.id + (r.claimCode ? '&c=' + encodeURIComponent(r.claimCode) : '');
+      var pwLine = r.claimed
+        ? 'Owner password: <b>'+(r.hasPassword?'set by owner':'not set')+'</b> · <span class="chip" data-rmpw="'+r.id+'">Generate new password</span>'
+        : 'Setup code: <code class="pwval" data-pwval="'+esc(r.claimCode||'')+'">••••••••</code> '+
+          '<span class="chip" data-showpw="'+r.id+'">Show</span>'+
+          '<span class="chip" data-copytag="'+esc(setupUrl)+'">Copy setup link</span>'+
+          '<span class="chip" data-newcode="'+r.id+'">New code</span>';
+      // The tag URL now carries the venue's signature. It is deterministic, so this
+      // string never changes and a tag printed today stays valid — but an OLD tag
+      // (no &t=) only keeps working until EAT_REQUIRE_TAG_SIG is switched on, so
+      // reprint or reprogram from here before flipping it.
+      var tagUrl = location.origin + '/?r=' + r.id + (r.tagSig ? '&t=' + r.tagSig : '');
       return '<div class="item'+(r.hidden?' hidden-row':'')+'" data-id="'+r.id+'">'+
         '<div class="thumb" data-thumb="'+r.id+'">'+(r.hasPhoto?'':'No photo')+'</div>'+
         '<div class="info"><div class="rn">'+esc(r.name)+'</div>'+
           '<div class="infoedit"><input class="ii" data-iaddr="'+r.id+'" value="'+esc(r.address||'')+'" placeholder="Address"><input class="ii" data-ihours="'+r.id+'" value="'+esc(r.hours||'')+'" placeholder="Hours (e.g. Mon-Fri 11am-9pm)"><span class="chip" data-saveinfo="'+r.id+'">Save info</span></div>'+
           '<div class="pw">'+pwLine+'</div>'+
           '<div class="tag">NFC/QR link: <code>'+esc(tagUrl)+'</code><span class="chip" data-copytag="'+esc(tagUrl)+'">Copy</span></div>'+
+          rewardsLine(r)+
           '<div class="ctl">'+
             '<label class="file">Upload photo<input type="file" accept="image/*" data-photo="'+r.id+'"></label>'+
             (r.hasPhoto?'<span class="chip" data-rmphoto="'+r.id+'">Remove photo</span>':'')+
@@ -132,7 +184,24 @@
     }
     return out+'</div>';
   }
-  function reloadList(){ return S.adminList(adminPw).then(function(res){ if(res.ok){ all=res.restaurants; render(); } return res; }); }
+  // The tag-signature state from the last list call, kept so a later re-render (e.g. when
+  // coupon stats arrive) redraws the banner from the real values instead of guessing.
+  var tagMeta = null, couponStats = null;
+  function reloadList(){
+    return S.adminList(adminPw).then(function(res){
+      if(res.ok){ all=res.restaurants; tagMeta=res; render(); renderTagBanner(tagMeta); loadCouponStats(); }
+      return res;
+    });
+  }
+  // Fetched separately because it scans the coupon records, which is a heavier read than
+  // the venue list and should not hold up rendering it.
+  function loadCouponStats(){
+    if(!S.adminCouponStats) return;
+    S.adminCouponStats(adminPw).then(function(res){
+      if(!res.ok) return;
+      couponStats = res.stats; render(); renderTagBanner(tagMeta);
+    }).catch(function(){});
+  }
   function wire(){
     document.querySelectorAll('[data-photo]').forEach(function(el){ el.onchange=function(e){ var id=+el.getAttribute('data-photo'), f=e.target.files[0]; if(!f) return;
       S.fileToDataUrl(f).then(function(url){ return S.adminPhoto(adminPw,id,url); }).then(function(res){ toast(res.ok?'Photo uploaded':'Upload failed'); reloadList(); }).catch(function(){toast('Could not read image');}); }; });
@@ -164,7 +233,22 @@
         if(res && res.error==='founding_full'){ toast('All 3 Founding spots are taken.'); return; }
         toast(turningOn?'Founding offer granted':'Founding offer revoked'); reloadList();
       }); }; });
-    document.querySelectorAll('[data-rmpw]').forEach(function(el){ el.onclick=function(){ var id=+el.getAttribute('data-rmpw'); S.adminResetPassword(adminPw,id).then(function(res){ toast(res.ok?'Password reset to default':'Reset failed'); reloadList(); }); }; });
+    document.querySelectorAll('[data-rmpw]').forEach(function(el){ el.onclick=function(){
+      var id=+el.getAttribute('data-rmpw');
+      S.adminResetPassword(adminPw,id).then(function(res){
+        // Shown once on purpose: only the hash is stored, so there is nothing to look up
+        // later. Copy it before dismissing.
+        if(res.ok && res.password){ prompt('New password for this venue — copy it now, it is not stored anywhere and cannot be shown again:', res.password); toast('New password generated'); }
+        else if(res.reason==='not_claimed'){ toast('Not claimed yet — use its setup code instead'); }
+        else { toast('Reset failed'); }
+        reloadList();
+      });
+    }; });
+    document.querySelectorAll('[data-newcode]').forEach(function(el){ el.onclick=function(){
+      var id=+el.getAttribute('data-newcode');
+      if(!confirm('Issue a new setup code for this venue? The old code stops working immediately.')) return;
+      S.adminNewClaimCode(adminPw,id).then(function(res){ toast(res.ok?'New setup code issued':'Could not issue a code'); reloadList(); });
+    }; });
     document.querySelectorAll('[data-showpw]').forEach(function(el){ el.onclick=function(){
       var code=el.parentNode.querySelector('.pwval'); if(!code) return;
       var shown=code.getAttribute('data-shown')==='1';
