@@ -219,43 +219,69 @@
     return rec;
   }
 
-  /* ---------- anonymous server backup of punches (keyed by the random deviceId) ----------
-     The card lives in localStorage as before; in server mode we also mirror it to the
-     backend under the device's random token, so a reload or a wiped localStorage can
-     restore it. No identity is ever attached — the token is the only key. */
-  function deviceBackup() {
-    if (mode !== 'server') return;
-    var d = loadDevice();
-    api('device', 'POST', { action: 'put', deviceId: d.deviceId, perRest: d.perRest }).catch(function () {});
-  }
-  // Merge one venue's local + backup record without losing progress or a live coupon.
-  function mergeRec(a, b) {
-    if (!a) return b; if (!b) return a;
-    var newer = (b.ratedAt || 0) >= (a.ratedAt || 0) ? b : a, older = newer === b ? a : b;
-    var m = { done: newer.done || 0, total: newer.total || older.total || DEFAULT_PUNCHES, ratedAt: newer.ratedAt || 0, tapAt: Math.max(a.tapAt || 0, b.tapAt || 0) };
-    var coup = newer.coupon || null;
-    if ((!coup || (coup.expiresAt || 0) < Date.now()) && older.coupon && (older.coupon.expiresAt || 0) > Date.now()) coup = older.coupon;
-    m.coupon = coup;
-    return m;
-  }
-  // On load (server mode): pull the backup, merge it into this device's local state,
-  // then push the union back so the server always holds the latest.
+  /* ---------- server-held punch state ----------
+     In server mode the authoritative punch count lives in the database under this
+     device's random token (no identity attached — the token is the only key), and is
+     written only by api/rate.js on a rating that passed the tag and daily checks.
+
+     There is deliberately no upload here any more. This used to POST the whole local
+     perRest to /api/device 'put', which meant a customer's own browser declared its
+     punch progress — and so, once a card "filled", its reward. That endpoint now
+     answers 410. Local state is a render cache that the server overwrites. */
+  function deviceBackup() { /* server-owned: nothing to upload */ }
+  /* Pull server truth into the local render cache: the punch counts, and this device's
+     outstanding coupons. The server's copy wins outright — there is no merge any more,
+     because a merge would let a wiped-and-edited localStorage reintroduce progress the
+     server never granted. A wiped cache is restored from the server, which is the point
+     of the anonymous token; a tampered cache is simply overwritten. */
   function deviceRestore() {
     if (mode !== 'server') return Promise.resolve();
     var d = loadDevice();
     return api('device', 'POST', { action: 'get', deviceId: d.deviceId }).then(function (res) {
-      var serverPer = (res.ok && res.data && res.data.perRest) || null;
-      if (!serverPer) return;
-      var cur = loadDevice(), changed = false, ids = {};
-      Object.keys(cur.perRest || {}).forEach(function (k) { ids[k] = 1; });
-      Object.keys(serverPer).forEach(function (k) { ids[k] = 1; });
-      Object.keys(ids).forEach(function (id) {
-        var merged = mergeRec(cur.perRest[id], serverPer[id]);
-        if (JSON.stringify(merged) !== JSON.stringify(cur.perRest[id])) changed = true;
-        cur.perRest[id] = merged;
+      var serverPer = (res.ok && res.data && res.data.perRest) || {};
+      var cur = loadDevice();
+      var next = {};
+      Object.keys(serverPer).forEach(function (id) {
+        var s = serverPer[id] || {};
+        next[id] = {
+          done: parseInt(s.done, 10) || 0,
+          total: parseInt(s.total, 10) || DEFAULT_PUNCHES,
+          ratedAt: parseInt(s.ratedAt, 10) || 0,
+          // tapAt is purely a local UX timer for the "Rate now" pill, so it is the one
+          // field the server has no opinion about and the local value is kept.
+          tapAt: (cur.perRest[id] && cur.perRest[id].tapAt) || 0,
+          coupon: null
+        };
       });
-      if (changed) saveDevice(cur);
-      deviceBackup();
+      // Carry over tapAt for venues the server has never heard of (tapped, not yet rated).
+      Object.keys(cur.perRest || {}).forEach(function (id) {
+        if (!next[id] && cur.perRest[id] && cur.perRest[id].tapAt) {
+          next[id] = { done: 0, total: DEFAULT_PUNCHES, ratedAt: 0, tapAt: cur.perRest[id].tapAt, coupon: null };
+        }
+      });
+      cur.perRest = next; saveDevice(cur);
+      return couponsRestore();
+    }).catch(function () {});
+  }
+  /* This device's live coupons, from the server. They are keyed by venue for rendering,
+     and a venue may now hold more than one — filling a second card used to overwrite an
+     unredeemed reward, because the client kept a single coupon slot per venue. */
+  function couponsRestore() {
+    if (mode !== 'server') return Promise.resolve();
+    var d = loadDevice();
+    return api('coupon', 'POST', { action: 'mine', deviceId: d.deviceId }).then(function (res) {
+      if (!res.ok || !res.data || !Array.isArray(res.data.coupons)) return;
+      var cur = loadDevice();
+      res.data.coupons.forEach(function (c) {
+        var id = c.venueId;
+        if (!cur.perRest[id]) cur.perRest[id] = { done: 0, total: DEFAULT_PUNCHES, ratedAt: 0, tapAt: 0, coupon: null };
+        var existing = cur.perRest[id].coupon;
+        // Show the one expiring soonest, so nothing is left to quietly lapse.
+        if (!existing || (c.expiresAt || 0) < (existing.expiresAt || 0)) cur.perRest[id].coupon = c;
+        if (!cur.perRest[id].coupons) cur.perRest[id].coupons = [];
+        cur.perRest[id].coupons.push(c);
+      });
+      saveDevice(cur);
     }).catch(function () {});
   }
   // Adopt a device token handed back by a durable, wipe-proof store (a Wallet pass,
@@ -397,16 +423,34 @@
   }
   function clearPickPhoto(id, i) { delete pickPhotoCache[id + ':' + i]; }
 
-  /* ---------- rating (public, shared) + punch (per-device) ---------- */
-  function rate(id, stars, upvote) {
+  /* ---------- rating ----------
+     In server mode the punch count and any coupon come back FROM the server and are
+     cached locally for rendering — they are no longer computed here. The old code called
+     the local punch() after a successful rate, which meant the card, and therefore the
+     reward, was whatever this browser said it was.
+
+     `tagSig` is the `t` from the tag URL. The server decides what to do with a missing
+     one (accepted-but-unverified during the tag migration, refused once
+     EAT_REQUIRE_TAG_SIG is on), so nothing here needs to know which phase we are in.
+     The local rate-limit check stays as a UX courtesy; the real limit is server-side. */
+  function rate(id, stars, upvote, tagSig) {
     if (ratedRecently(id)) return Promise.resolve({ ok: false, reason: 'rate_limited' });
     var r = get(id);
     if (mode === 'server') {
-      return api('rate', 'POST', { id: id, stars: stars, upvote: upvote }).then(function (res) {
+      var dev = loadDevice();
+      return api('rate', 'POST', { id: id, stars: stars, upvote: upvote, t: tagSig || '', deviceId: dev.deviceId }).then(function (res) {
         if (!res.ok) return { ok: false, reason: (res.data && res.data.error) || 'error' };
         var c = get(id); if (c) { c.upvotes = res.data.upvotes; c.totalRatings = res.data.totalRatings; c.rating = res.data.rating; }
-        var rec = punch(id, r ? r.couponValidDays : 14, r ? r.reward : '', punchesFor(r), !!(r && r.rewardsOn));
-        return { ok: true, record: rec };
+        // Cache the server's answer so the card and coupon render without another round
+        // trip. This is a copy of server state, not a source of it.
+        var d = loadDevice();
+        var rec = d.perRest[id] || {};
+        rec.ratedAt = Date.now();
+        if (res.data.punch) { rec.done = res.data.punch.done; rec.total = res.data.punch.total; }
+        if (res.data.coupon) rec.coupon = res.data.coupon;
+        d.perRest[id] = rec; saveDevice(d);
+        if (r && r.rewardsOn) walletSync(id);
+        return { ok: true, record: rec, coupon: res.data.coupon || null, tagVerified: !!res.data.tagVerified };
       });
     }
     // local
@@ -416,6 +460,18 @@
     saveLocal(d); cache = decorateList(d.restaurants);
     var rec2 = punch(id, lr.couponValidDays, lr.reward, punchesFor(lr), !!lr.rewardsOn);
     return Promise.resolve({ ok: true, record: rec2 });
+  }
+
+  /* Ask the server to create this reward's Google Wallet pass and return its
+     Add-to-Wallet link. The coupon works without it — the pass is a convenience, plus
+     the barcode staff scan from their own phone. Resolves to null when wallet isn't
+     configured, so the button simply doesn't render. */
+  function couponWalletLink(code) {
+    if (mode !== 'server') return Promise.resolve(null);
+    var d = loadDevice();
+    return api('coupon', 'POST', { action: 'walletLink', code: code, deviceId: d.deviceId })
+      .then(function (res) { return (res.ok && res.data && res.data.saveUrl) || null; })
+      .catch(function () { return null; });
   }
 
   /* ---------- owner ---------- */
@@ -443,9 +499,12 @@
     return Promise.resolve({ ok: true });
   }
   function ownerUpdate(id, pw, fields) {
-    if (mode === 'server') return api('owner', 'POST', { action: 'update', id: id, token: ownerTok[id], password: pw, fields: fields }).then(function (res) { return { ok: res.ok }; }).then(function (r) { return refresh().then(function () { return r; }); });
+    // The reason is carried through so the dashboard can tell a rejected staff PIN from
+    // a generic failure, rather than reporting "Save failed" for a fixable typo.
+    if (mode === 'server') return api('owner', 'POST', { action: 'update', id: id, token: ownerTok[id], password: pw, fields: fields }).then(function (res) { return { ok: res.ok, reason: res.data && res.data.error }; }).then(function (r) { return refresh().then(function () { return r; }); });
     var d = loadLocal(), lr = localFind(d, id);
     if (!lr || pw !== lr.password) return Promise.resolve({ ok: false });
+    if (typeof fields.staffPin === 'string' && fields.staffPin && !/^[0-9]{6}$/.test(fields.staffPin)) return Promise.resolve({ ok: false, reason: 'bad_pin_format' });
     if (Array.isArray(fields.picks)) lr.picks = fields.picks.slice(0, 3);
     if (typeof fields.note === 'string') lr.note = fields.note;
     if (typeof fields.website === 'string') lr.website = fields.website;
@@ -455,6 +514,9 @@
     if (fields.couponValidDays != null) lr.couponValidDays = Math.max(1, parseInt(fields.couponValidDays, 10) || 1);
     if (fields.happyHour) lr.happyHour = fields.happyHour;
     if (typeof fields.password === 'string' && fields.password.trim()) lr.password = fields.password.trim();
+    // Local mode stores it in the clear because there is no server to hash it — this is
+    // the no-database demo path only. hasStaffPin is what the dashboard reads.
+    if (typeof fields.staffPin === 'string') { lr.staffPin = fields.staffPin || null; lr.hasStaffPin = !!fields.staffPin; }
     var ok = saveLocal(d); cache = decorateList(d.restaurants);
     return Promise.resolve({ ok: ok });
   }
@@ -504,9 +566,18 @@
   /* ---------- admin ---------- */
   function checkAdminLocal(pw) { var s; try { s = global.localStorage.getItem(AKEY); } catch (e) { s = null; } return pw === (s || DEFAULT_ADMIN); }
   function adminList(pw) {
-    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'list' }).then(function (res) { return res.ok ? { ok: true, restaurants: res.data.restaurants } : { ok: false }; });
+    if (mode === 'server') return api('admin', 'POST', { password: pw, action: 'list' }).then(function (res) { return res.ok ? { ok: true, restaurants: res.data.restaurants, tagSigAvailable: !!res.data.tagSigAvailable, tagSigEnforced: !!res.data.tagSigEnforced } : { ok: false }; });
     if (!checkAdminLocal(pw)) return Promise.resolve({ ok: false });
     return Promise.resolve({ ok: true, restaurants: loadLocal().restaurants });
+  }
+  // Issued vs redeemed per venue — derived from the coupon records themselves, so it
+  // cannot drift the way a counter would. This is the first number an owner can be shown
+  // that says whether the punch card did anything.
+  function adminCouponStats(pw) {
+    if (mode !== 'server') return Promise.resolve({ ok: false, reason: 'local' });
+    return api('admin', 'POST', { password: pw, action: 'couponStats' }).then(function (res) {
+      return res.ok ? { ok: true, stats: res.data.stats, total: res.data.total } : { ok: false };
+    });
   }
   function adminPhoto(pw, id, dataUrl) {
     clearPhoto(id);
@@ -604,10 +675,10 @@
     init: init, refresh: refresh, mode: function () { return mode; }, isServer: function () { return mode === 'server'; },
     list: list, get: get, getPhoto: getPhoto, clearPhoto: clearPhoto,
     getPickPhoto: getPickPhoto, clearPickPhoto: clearPickPhoto,
-    rate: rate, ratedRecently: ratedRecently, deviceRec: deviceRec, recordTap: recordTap, pendingTap: pendingTap,
+    rate: rate, couponWalletLink: couponWalletLink, ratedRecently: ratedRecently, deviceRec: deviceRec, recordTap: recordTap, pendingTap: pendingTap,
     deviceId: function () { return loadDevice().deviceId; }, deviceBackup: deviceBackup, deviceRestore: deviceRestore, adoptDevice: adoptDevice,
     walletCaps: walletCaps, walletSave: walletSave, walletAppleUrl: walletAppleUrl, walletSync: walletSync,
-    adminNewClaimCode: adminNewClaimCode,
+    adminNewClaimCode: adminNewClaimCode, adminCouponStats: adminCouponStats,
     ownerLogin: ownerLogin, ownerClaim: ownerClaim, ownerUpdate: ownerUpdate, ownerPhoto: ownerPhoto, ownerPickPhoto: ownerPickPhoto,
     agentList: agentList, agentRun: agentRun,
     checkout: checkout, confirmUpgrade: confirmUpgrade,

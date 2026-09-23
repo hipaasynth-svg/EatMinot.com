@@ -92,6 +92,59 @@ can email `cody@eatminot.com`.
   in `api/_lib.js` for local use; **treat any deployment without that variable set as an
   open admin console** and set it before going live.
 
+## Verified presence — signed tags, server-held punches, single-use rewards
+
+The three things that make "verified word-of-mouth" true are enforced on the server, not
+in the customer's browser:
+
+1. **A rating needs a signed tag.** Tag URLs are `/?r=<id>&t=<sig>`, where `sig` is an
+   HMAC of the venue id under `EAT_TAG_SECRET`. It is deterministic, so a venue's tag URL
+   never changes and a printed tag never goes stale unless you rotate the secret. Copy the
+   current URL per venue from the admin console.
+2. **One rating per device per venue per 24h**, as a Redis claim keyed on the device's
+   anonymous `dev_…` token. Clearing site data no longer resets it.
+3. **Punches are counted server-side** and a reward is minted as a server record. The
+   client cannot write its own progress — `/api/device` is read-only and its old `put`
+   action answers `410`.
+
+### Rolling out signed tags without breaking the tags already in venues
+
+Tags printed before this carry a bare `/?r=<id>`, so enforcement is **off by default**:
+
+1. Set `EAT_TAG_SECRET` in Vercel to a long random string and redeploy. Signed URLs start
+   being issued; unsigned ratings are still accepted but marked unverified.
+2. Reprint or reprogram each tag from the admin console (each row shows its signed link
+   with a copy button). The admin banner tells you which phase you are in.
+3. Once every tag is updated, set `EAT_REQUIRE_TAG_SIG=1`. Unsigned ratings are now
+   refused. Any tag still carrying a bare link stops working — that is the point.
+
+> Rotating `EAT_TAG_SECRET` invalidates every printed tag at once. Only do it if a secret
+> leaks, and reprogram everything in the same sitting.
+
+## Rewards: earned, added to Wallet, redeemed once
+
+- Filling a card mints a coupon as a **server record** — code, venue, reward, expiry,
+  `redeemedAt`. The code used to be generated in the browser and never sent anywhere, so
+  nothing could tell a real one from a string typed into a notes app and the same code
+  worked until it expired.
+- The customer can **Add reward to Google Wallet**. It is a separate Google *Offer* pass
+  beside the punch card, carrying a QR that opens `/redeem?c=<code>`.
+- **Any staff member redeems it from their own phone.** They scan that QR (or open the
+  "Staff: redeem" link on the customer's screen), which shows the venue and the reward,
+  then enter the venue's **6-digit staff PIN**. No app, no venue login, no shared device —
+  the PIN is the authorisation, so a passer-by who scans the same QR cannot spend
+  someone else's reward.
+- On success the coupon is burned (it cannot be redeemed twice) and the Wallet pass is
+  PATCHed to `COMPLETED`, so it **greys out in the customer's own Wallet**. The pass
+  becomes the receipt.
+- The owner sets and rotates the staff PIN in their dashboard; it is hashed at rest and
+  never readable back. **A venue with no PIN cannot redeem at all** — deliberately, rather
+  than falling back to something guessable.
+- Because the endpoint is public, failed PINs are rate-limited per coupon, per venue and
+  per IP, and a coupon locks out long before a six-digit PIN could be walked.
+- Admin → the per-venue **issued vs redeemed** line. Derived by scanning the coupon
+  records, so it cannot drift from them.
+
 ## Shared database (turn on cross-device sync)
 
 The app runs in two modes automatically:
@@ -126,12 +179,16 @@ Photos are stored under separate Redis keys and downscaled client-side to keep t
 
 ### API surface (`/api`)
 - `GET  /api/state` → public restaurants (+ `persistent` flag), no passwords
-- `POST /api/rate` `{id, stars, upvote}` → updates shared upvotes / verified ratings / stars
+- `POST /api/rate` `{id, t, deviceId, stars, upvote}` → verifies the tag signature and the
+  once-per-day claim, updates the shared counters, advances the server-held punch card,
+  and mints a coupon when it fills
+- `POST /api/coupon` `{action:'peek'|'redeem'|'mine'|'walletLink', …}` → staff-facing
+  lookup, single-use PIN redemption, a device's own rewards, and the Add-to-Wallet link
 - `POST /api/owner` `{action:'login'|'update'|'photo', id, password, …}` → owner controls
 - `POST /api/admin` `{password, action, …}` → photos, Claimed/Paid flags, list, reset
 - `GET  /api/photo?id=` → a restaurant's photo
-- `POST /api/device` `{action:'get'|'put', deviceId, perRest}` → anonymous punch-card backup
-  (keyed only by the random `dev_…` token; sanitized to punch/coupon fields; no identity)
+- `POST /api/device` `{action:'get', deviceId}` → read-only punch state for that anonymous
+  token. `put` is gone (410): the server owns the count
 - `GET  /api/pass` → `{google, apple}` (which wallet buttons the server can issue)
 - `GET  /api/pass?provider=apple&dev=&venueId=&done=&total=` → the signed `.pkpass` file
 - `POST /api/pass` `{provider, dev, venueId, done, total}` → an Add-to-Wallet save link
@@ -186,6 +243,8 @@ Implemented with Stripe's REST API directly (no SDK): `api/checkout.js`,
 | `GOOGLE_WALLET_ISSUER_ID` | Google Wallet punch-card passes (with the SA key below) |
 | `GOOGLE_WALLET_SA_JSON_BASE64` | Google service-account JSON key, base64-encoded |
 | `APPLE_PASS_TYPE_ID` / `APPLE_TEAM_ID` / `APPLE_PASS_CERT_P12_BASE64` / `APPLE_PASS_CERT_PASSWORD` / `APPLE_WWDR_CERT_BASE64` | Apple Wallet passes (all five required; button hidden until then) |
+| `EAT_TAG_SECRET` | Signed tag URLs (`/?r=<id>&t=<sig>`). **Set this** — without it, presence can't be proven or enforced. |
+| `EAT_REQUIRE_TAG_SIG` | Set to `1` to **refuse** ratings without a valid tag signature. Reprogram every tag first (see below). |
 | `MINOT_AGENT_URL` / `MINOT_AGENT_SERVICE_KEY` | AI Assistant (beta) — proxies `api/agent.js` to the self-hosted [`minot-agent`](https://github.com/hipaasynth-svg/hipaasynth-svg-minot-agent) service. Also requires an admin to flip a venue's `agentEnabled` flag in the admin console; without either, the feature stays invisible. |
 
 ### AI Assistant (beta)
