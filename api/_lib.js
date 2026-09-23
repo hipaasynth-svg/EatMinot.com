@@ -136,6 +136,17 @@ function avgRating(v) { var c = v && v.ratingCount ? v.ratingCount : 0; return c
 var MIN_PUNCHES = 2, MAX_PUNCHES = 5, DEFAULT_PUNCHES = 5;
 function clampPunches(n) { n = parseInt(n, 10); return (n >= MIN_PUNCHES && n <= MAX_PUNCHES) ? n : DEFAULT_PUNCHES; }
 
+// Founding Three: exactly 3 venues total, ever, get a 10-week (70-day) free trial and
+// then $79/mo locked for their first year — see checkout.js. Both the admin grant (only
+// 3 venues may hold foundingOffer at once) and checkout itself are capped against this
+// same number so neither path can hand out a 4th slot.
+var FOUNDING_LIMIT = 3, FOUNDING_TRIAL_DAYS = 70, FOUNDING_PRICE_CENTS = 7900;
+// Counts venues that already have a locked-in founding slot (paid) plus ones an admin has
+// granted the offer to but who haven't checked out yet — both consume one of the 3 spots.
+function countFoundingSlots(list) {
+  return list.filter(function (r) { return r.founding || r.foundingOffer; }).length;
+}
+
 /* ---------- password hashing (salted SHA-256, no plaintext at rest) ---------- */
 function hashPw(pw) {
   var salt = crypto.randomBytes(9).toString('hex');
@@ -198,8 +209,18 @@ function seedProfile(id) {
     // AI Assistant (beta) — always starts off; only a super admin can turn it on per venue
     // (see api/admin.js setFlag), independent of claimed/paid. Not a Stripe-gated tier yet.
     agentEnabled: false,
+    // Founding Three: admin grants foundingOffer to at most 3 venues (see api/admin.js
+    // setFlag), which is what makes api/checkout.js give a 10-week trial at $79/mo instead
+    // of the standard $59/mo. founding flips true once that checkout actually completes —
+    // it's the permanent record of "this venue used a founding slot" and keeps their $79
+    // rate even if foundingOffer is later cleared. foundingLockUntil is informational: the
+    // date the $79 rate was promised to hold through (one year from signup).
+    foundingOffer: false, founding: false, foundingLockUntil: null,
     // No password until the real owner sets one through the claim flow (see api/owner.js).
-    // A null password cannot be logged into at all — there is nothing to guess.
+    // A null password cannot be logged into at all — there is nothing to guess. This
+    // deliberately replaces the hashPw(defaultPassword(name)) that PR #30 still carried:
+    // that formula (slug(name) + '26') let anyone who could read a venue's name log in as
+    // it, and was published in the README. tests/auth.test.js asserts it stays dead.
     password: null,
     // The one secret that lets a listing be claimed. Random, stored, admin-visible only,
     // and stripped from every public response by publicView below.
@@ -281,6 +302,11 @@ function normalizeProfile(p) {
   // Profiles saved before this beta existed default OFF regardless of claimed/paid —
   // an admin must explicitly opt each venue in while it's being tested.
   if (typeof p.agentEnabled !== 'boolean') p.agentEnabled = false;
+  // Founding Three offer/status — see seedProfile for what each field means. Default
+  // everything off/unset so a profile saved before this existed never looks founding.
+  if (typeof p.foundingOffer !== 'boolean') p.foundingOffer = false;
+  if (typeof p.founding !== 'boolean') p.founding = false;
+  if (typeof p.foundingLockUntil !== 'string') p.foundingLockUntil = null;
   // Profiles written before claim codes existed get one on first read (getProfile and
   // getAllRestaurants persist it), so an already-live listing becomes claimable with a
   // real code instead of the old name-derived password.
@@ -704,6 +730,8 @@ module.exports = {
   PHOTO_KEY: PHOTO_KEY, PICK_PHOTO_KEY: PICK_PHOTO_KEY,
   seedIds: seedIds, seedProfile: seedProfile, slug: slug,
   clampPunches: clampPunches, avgRating: avgRating,
+  FOUNDING_LIMIT: FOUNDING_LIMIT, FOUNDING_TRIAL_DAYS: FOUNDING_TRIAL_DAYS,
+  FOUNDING_PRICE_CENTS: FOUNDING_PRICE_CENTS, countFoundingSlots: countFoundingSlots,
   hashPw: hashPw, verifyPw: verifyPw,
   randomCode: randomCode, randomPassword: randomPassword, verifyClaimCode: verifyClaimCode,
   isPlaceholderHours: isPlaceholderHours, isPlaceholderAddress: isPlaceholderAddress,
