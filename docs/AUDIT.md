@@ -67,7 +67,17 @@ depends on both.
 
 ## 1. Severity 1 — attacks the exact claim you sell
 
-### 1.1 `POST /api/rate` is unauthenticated, unthrottled, and accepts anything
+### 1.1 `POST /api/rate` is unauthenticated, unthrottled, and accepts anything — **FIXED**
+> **Fixed** on `hipaasynth-svg/focused-sagan-si6qgh` in both repos. `POST /api/rate` now
+> requires a device token, verifies a tag signature (`?t=`, an HMAC of the venue id under
+> `EAT_TAG_SECRET`), claims a Redis `SET NX EX` for one rating per device per venue per 24h,
+> and applies a coarse per-IP ceiling. Covered by `tests/presence.test.js`.
+>
+> **Enforcement is off until you turn it on.** Tags already in venues carry no signature, so
+> an unsigned rating is still accepted — and reported as unverified — until
+> `EAT_REQUIRE_TAG_SIG=1`. Set `EAT_TAG_SECRET`, redeploy, reprogram the tags from the signed
+> links in the admin console, then set the flag. The admin banner states which phase you are
+> in. **Until that flag is on, this finding is mitigated, not closed.**
 `api/rate.js:8-27` (both sites, identical).
 
 The handler validates only that `stars` is 1–5 and that the venue exists and is not
@@ -87,13 +97,18 @@ done
 Venue ids are sequential 1-based integers and are **printed on the physical tags**
 (`publicUrl()` → `/?r=<id>`, `index.html:742`), so no guessing is required either.
 
-### 1.2 The "one rating per device per 24h" limit is client-side only
+### 1.2 The "one rating per device per 24h" limit is client-side only — **FIXED**
+> **Fixed.** The limit is a Redis claim keyed on the device token and venue, with a 24h TTL,
+> taken before any counter moves. Clearing site data no longer resets it, and a refused
+> attempt is asserted to move no counter.
 `store.js:391` — `rate()` starts with `if (ratedRecently(id)) return {ok:false}`, and
 `ratedRecently` (`store.js:171`) reads `localStorage` key `eatminot_device_v1`. Clearing
 site data, opening a private window, or calling the API directly all reset it. The
 server has no concept of a device on the rating path at all.
 
-### 1.3 The "verified presence" gate is a URL parameter
+### 1.3 The "verified presence" gate is a URL parameter — **FIXED, pending the flag**
+> **Fixed** by the signed tag in §1.1, subject to the same rollout caveat: signatures are
+> issued now, refused-if-missing only once `EAT_REQUIRE_TAG_SIG=1`.
 `index.html:566-568,724` — `tagVerified` is set from `?r=<id>` in the query string.
 Typing `eatminot.com/?r=12` is indistinguishable from tapping venue 12's NFC tag.
 Nothing is signed; there is no secret in the tag.
@@ -155,7 +170,15 @@ confirm `EAT_ADMIN_PASSWORD`, `DRINK_ADMIN_PASSWORD`, `EAT_SESSION_SECRET`, and
 console — photos, paid flags, every owner's default password, data reset — is open to
 anyone who read the README.
 
-### 1.7 No rate limiting on any endpoint, and no upload size cap
+### 1.7 No rate limiting on any endpoint, and no upload size cap — **PARTLY FIXED**
+> **Fixed for the rating and redemption paths:** a reusable `rateLimit()` / `claimOnce()`
+> pair on Redis primitives now backs the per-device daily claim, the per-IP rating ceiling,
+> and the three PIN-failure lockouts (per coupon, per venue, per IP). `/api/device` can no
+> longer be written to at all — its `put` action answers 410.
+>
+> **Still open:** no size cap on photo `dataUrl` writes in `api/owner.js` / `api/admin.js`,
+> and no throttle on owner login or admin password attempts. The helper to fix both now
+> exists.
 No endpoint in either `api/` directory implements throttling. `api/owner.js:36` and
 `api/admin.js:54` check only that a photo `dataUrl` matches `/^data:image\//` — there
 is no length check before it is written to Redis. An authenticated owner (see 1.4:
@@ -187,6 +210,21 @@ call there, and out of `rate()`, converts the product from "paid for reviews" to
 "loyalty card for visits, ratings welcome" — which is both legal and a better
 product, because the ratings stop being bought.
 
+> **STILL OPEN — and deliberately so.** The verified-presence work moved the punch
+> server-side but kept it contingent on a rating: `api/rate.js` advances the card, so a
+> reward is still earned by leaving feedback. That is the same FTC exposure, now enforced
+> more reliably.
+>
+> It was left because it is a product decision, not a bug fix. A signed tag hit could now
+> grant the punch on its own — the plumbing exists — but decoupling it means some people
+> will take the punch and skip the rating, and the rating volume is what makes the
+> directory worth anything. That trade is the owner's call, not one to make silently in a
+> security change.
+>
+> If the answer is "decouple it", the change is now genuinely small: grant the punch on a
+> verified tag hit in its own endpoint, and leave `api/rate.js` to move only the vote
+> counters.
+
 ### 2.2 DrinkMinot has no age gate, only a sticker
 `drinkminot/index.html:330-331` — `over21` renders a decorative `21+` sticker. There
 is no interstitial, no date-of-birth check, nothing that gates content or a
@@ -212,7 +250,15 @@ sound and should not be removed. Worth noting only because the string exists on 
 
 ## 3. Severity 2 — the business model gaps
 
-### 3.1 You cannot prove ROI, because nothing useful is counted
+### 3.1 You cannot prove ROI, because nothing useful is counted — **PARTLY FIXED**
+> **First real number shipped:** per-venue **coupons issued vs redeemed** (plus outstanding
+> and expired), in the admin console, derived by scanning the coupon records so it cannot
+> drift from them. That is the loyalty card's actual outcome, and it exists now because
+> redemption is a server event for the first time.
+>
+> **Still open:** taps, unique devices and Most Wanted impressions are still uncounted, and
+> none of this is surfaced in the *owner's* dashboard yet — only in admin. The monthly
+> owner-facing report is still the work that makes renewal conversations possible.
 `@vercel/analytics` is a declared dependency in both `package.json` files (commit
 `332d3d8`) but is **never imported** — no `inject()`, no script tag. Vercel Web Analytics
 may still be switched on at the project level, which would give platform-side pageviews
