@@ -830,18 +830,23 @@
     });
   }
   var ownerPw='';
-  // Mirrors the founding-vs-standard split in api/checkout.js: once a venue is r.founding
-  // it's locked at $79/mo (its foundingLockUntil date is informational only); r.foundingOffer
-  // means an admin granted the offer but the venue hasn't checked out yet, so it still shows
-  // $59/mo until they redeem it. Keeping this in one place avoids the price text and the
-  // actual Stripe amount drifting apart the way they had before Founding Three existed.
+  // The only place this page writes a price. These two must match STANDARD_PRICE_CENTS and
+  // FOUNDING_PRICE_CENTS in api/_lib.js, which is what Stripe is actually charged — if you
+  // change a rate, change it there and here, and nowhere else in this file.
+  var PRICING = { standard: '$79/mo', founding: '$59/mo', trial: '10 weeks free' };
+  // Mirrors the founding-vs-standard split in api/checkout.js: once a venue is r.founding it
+  // keeps the cheaper founding rate permanently; r.foundingOffer means an admin granted the
+  // offer but the venue hasn't checked out yet, so it still shows the standard rate until
+  // they redeem it. Note we deliberately don't tell the owner their rate is "locked" for any
+  // period — nothing in the code enforces that, so nothing should promise it.
   function tierLabel(r){
-    if (r.paid) return r.founding ? 'Claimed · Paid · $79/mo (Founding)' : 'Claimed · Paid · $59/mo';
-    if (r.foundingOffer) return 'Claimed (free) — Founding Three: 10 weeks free, then $79/mo';
+    if (r.paid) return r.founding ? 'Claimed · Paid · ' + PRICING.founding + ' (Founding)'
+                                  : 'Claimed · Paid · ' + PRICING.standard;
+    if (r.foundingOffer) return 'Claimed (free) — Founding Three: ' + PRICING.trial + ', then ' + PRICING.founding;
     return 'Claimed (free) — upgrade to unlock photo & billboard';
   }
-  function upgradePriceText(r){ return r.foundingOffer ? '10 weeks free, then $79/mo' : '$59/mo'; }
-  function upgradeButtonText(r){ return r.foundingOffer ? 'Start free trial — then $79/mo' : 'Upgrade — $59/mo'; }
+  function upgradePriceText(r){ return r.foundingOffer ? PRICING.trial + ', then ' + PRICING.founding : PRICING.standard; }
+  function upgradeButtonText(r){ return r.foundingOffer ? 'Start free trial — then ' + PRICING.founding : 'Upgrade — ' + PRICING.standard; }
   function openDash(id){
     var r=S.get(id); if(!r) return;
     ownerPw=$('#loginPw').value || ownerPw;

@@ -136,11 +136,15 @@ function avgRating(v) { var c = v && v.ratingCount ? v.ratingCount : 0; return c
 var MIN_PUNCHES = 2, MAX_PUNCHES = 5, DEFAULT_PUNCHES = 5;
 function clampPunches(n) { n = parseInt(n, 10); return (n >= MIN_PUNCHES && n <= MAX_PUNCHES) ? n : DEFAULT_PUNCHES; }
 
-// Founding Three: exactly 3 venues total, ever, get a 10-week (70-day) free trial and
-// then $79/mo locked for their first year — see checkout.js. Both the admin grant (only
-// 3 venues may hold foundingOffer at once) and checkout itself are capped against this
-// same number so neither path can hand out a 4th slot.
-var FOUNDING_LIMIT = 3, FOUNDING_TRIAL_DAYS = 70, FOUNDING_PRICE_CENTS = 7900;
+// The standard monthly rate every claimed venue pays. Kept here, not inline in
+// checkout.js, so exactly one line in this repo decides what a venue is charged.
+var STANDARD_PRICE_CENTS = 7900;
+// Founding Three: exactly 3 venues on this site, ever, get a 10-week (70-day) free trial
+// and then the founding rate below — cheaper than standard, which is the whole point of
+// the offer — see checkout.js. Both the admin grant (only 3 venues may hold foundingOffer
+// at once) and checkout itself are capped against this same number so neither path can
+// hand out a 4th slot.
+var FOUNDING_LIMIT = 3, FOUNDING_TRIAL_DAYS = 70, FOUNDING_PRICE_CENTS = 5900;
 // Counts venues that already have a locked-in founding slot (paid) plus ones an admin has
 // granted the offer to but who haven't checked out yet — both consume one of the 3 spots.
 function countFoundingSlots(list) {
@@ -210,11 +214,13 @@ function seedProfile(id) {
     // (see api/admin.js setFlag), independent of claimed/paid. Not a Stripe-gated tier yet.
     agentEnabled: false,
     // Founding Three: admin grants foundingOffer to at most 3 venues (see api/admin.js
-    // setFlag), which is what makes api/checkout.js give a 10-week trial at $79/mo instead
-    // of the standard $59/mo. founding flips true once that checkout actually completes —
-    // it's the permanent record of "this venue used a founding slot" and keeps their $79
-    // rate even if foundingOffer is later cleared. foundingLockUntil is informational: the
-    // date the $79 rate was promised to hold through (one year from signup).
+    // setFlag), which is what makes api/checkout.js give a 10-week trial and then the
+    // founding $59/mo instead of the standard $79/mo. founding flips true once that
+    // checkout actually completes — it's the permanent record of "this venue used a
+    // founding slot" and keeps their $59 rate even if foundingOffer is later cleared.
+    // foundingLockUntil is an internal record only: one year from signup. Nothing reads
+    // it, and no owner-facing copy promises a locked rate (see README). Do not put that
+    // promise back into the pamphlets without first adding a guard that enforces it.
     foundingOffer: false, founding: false, foundingLockUntil: null,
     // No password until the real owner sets one through the claim flow (see api/owner.js).
     // A null password cannot be logged into at all — there is nothing to guess. This
@@ -731,7 +737,8 @@ module.exports = {
   seedIds: seedIds, seedProfile: seedProfile, slug: slug,
   clampPunches: clampPunches, avgRating: avgRating,
   FOUNDING_LIMIT: FOUNDING_LIMIT, FOUNDING_TRIAL_DAYS: FOUNDING_TRIAL_DAYS,
-  FOUNDING_PRICE_CENTS: FOUNDING_PRICE_CENTS, countFoundingSlots: countFoundingSlots,
+  FOUNDING_PRICE_CENTS: FOUNDING_PRICE_CENTS, STANDARD_PRICE_CENTS: STANDARD_PRICE_CENTS,
+  countFoundingSlots: countFoundingSlots,
   hashPw: hashPw, verifyPw: verifyPw,
   randomCode: randomCode, randomPassword: randomPassword, verifyClaimCode: verifyClaimCode,
   isPlaceholderHours: isPlaceholderHours, isPlaceholderAddress: isPlaceholderAddress,

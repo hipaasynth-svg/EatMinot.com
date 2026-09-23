@@ -148,9 +148,9 @@ module.exports = async function (req, res) {
         // AI Assistant (beta) — super-admin on/off switch per venue, independent of
         // claimed/paid. Not tied to Stripe yet; see api/agent.js for the actual gate.
         if (typeof b.agentEnabled === 'boolean') { r.agentEnabled = b.agentEnabled; }
-        // Founding Three — grants the 10-week-trial-then-$79/mo-locked offer at checkout.
-        // Only ever cleared manually here; checkout.js flips r.founding on separately once
-        // the offer is actually redeemed, which keeps the $79 rate even after this is unset.
+        // Founding Three — grants the 10-week-trial-then-$59/mo offer at checkout. Only
+        // ever cleared manually here; checkout.js flips r.founding on separately once the
+        // offer is actually redeemed, which keeps the $59 rate even after this is unset.
         if (typeof b.foundingOffer === 'boolean') { r.foundingOffer = b.foundingOffer; }
       });
       L.json(res, 200, { ok: true });

@@ -36,7 +36,7 @@ module.exports = async function (req, res) {
             p.paid = true; p.claimed = true;
             p.stripeCustomerId = obj.customer || p.stripeCustomerId;
             p.stripeSubscriptionId = obj.subscription || p.stripeSubscriptionId;
-            // Locks in the Founding Three $79/mo rate permanently, independent of the
+            // Records the Founding Three $59/mo rate permanently, independent of the
             // admin-granted foundingOffer flag (which can be cleared once redeemed).
             if (founding1 && !p.founding) {
               p.founding = true;
