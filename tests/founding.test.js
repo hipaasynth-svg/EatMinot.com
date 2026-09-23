@@ -65,10 +65,14 @@ async function claimAndLogin(id) {
 
   ok(L.FOUNDING_LIMIT === 3, 'the cap is 3 slots');
   ok(L.FOUNDING_TRIAL_DAYS === 70, 'the trial is 70 days (10 weeks)');
-  ok(L.FOUNDING_PRICE_CENTS === 7900, 'the founding rate is $79/mo');
+  ok(L.FOUNDING_PRICE_CENTS === 5900, 'the founding rate is $59/mo');
+  ok(L.STANDARD_PRICE_CENTS === 7900, 'the standard rate is $79/mo');
   ok(typeof L.countFoundingSlots === 'function', 'countFoundingSlots is still exported');
 
-  var seed = L.seedProfile(2);
+  // Derived, never hardcoded: each site has its own REMOVED id-map, so a literal id
+  // that exists on one site is a deleted listing on the other.
+  var sampleIds = L.seedIds();
+  var seed = L.seedProfile(sampleIds[1]);
   ok(seed.foundingOffer === false && seed.founding === false && seed.foundingLockUntil === null,
      'a new profile starts with no founding offer or status');
   // The same object must also carry the security fields — this is the hunk that conflicted.
@@ -78,12 +82,13 @@ async function claimAndLogin(id) {
 
   console.log('\nnormalizeProfile backfills both feature sets');
 
-  var legacy = L.seedProfile(3);
+  var legacyId = sampleIds[2];
+  var legacy = L.seedProfile(legacyId);
   delete legacy.foundingOffer; delete legacy.founding; delete legacy.foundingLockUntil;
   delete legacy.claimCode; delete legacy.staffPin;
   // A stored record from before either change.
-  await L.saveProfile(3, legacy);
-  var back = await L.getProfile(3);
+  await L.saveProfile(legacyId, legacy);
+  var back = await L.getProfile(legacyId);
   ok(back.foundingOffer === false && back.founding === false, 'founding fields default off');
   ok(typeof back.claimCode === 'string' && !!back.claimCode, 'a claim code is minted');
   ok(back.staffPin === null, 'staffPin defaults null');
@@ -105,6 +110,19 @@ async function claimAndLogin(id) {
   ok(off.status === 200 && (await L.getProfile(granted[0])).foundingOffer === false,
      'an existing offer can still be revoked while the cap is full');
 
+  console.log('\nthe founding rate is a discount, not a premium');
+
+  // This is the bug this suite exists to prevent recurring: for five days the founding
+  // tier was priced ABOVE standard, so the "offer" charged its best prospects more while
+  // the pamphlets advertised a discount. A founding rate that is not cheaper than standard
+  // is never correct, whatever the two numbers are.
+  ok(L.FOUNDING_PRICE_CENTS < L.STANDARD_PRICE_CENTS,
+     'founding (' + L.FOUNDING_PRICE_CENTS + ') undercuts standard (' + L.STANDARD_PRICE_CENTS + ')');
+  ok(L.STANDARD_PRICE_CENTS === 7900 && L.FOUNDING_PRICE_CENTS === 5900,
+     'the agreed table: $79 standard, $59 founding');
+  ok(L.FOUNDING_TRIAL_DAYS === 70 && L.FOUNDING_LIMIT === 3,
+     '10 weeks free, 3 slots');
+
   console.log('\ncheckout prices the offer correctly');
 
   var fid = granted[1];
@@ -115,7 +133,8 @@ async function claimAndLogin(id) {
   ok(co.status === 200 && !!co.body.url, 'a founding checkout session is created');
   var p = lastStripe && lastStripe.params;
   ok(!!p, 'Stripe was called');
-  ok(p['line_items[0][price_data][unit_amount]'] === '7900', 'at $79, not $59');
+  ok(p['line_items[0][price_data][unit_amount]'] === String(L.FOUNDING_PRICE_CENTS),
+     'at the founding rate (' + L.FOUNDING_PRICE_CENTS + ')');
   ok(p['subscription_data[trial_period_days]'] === '70', 'with the 70-day trial');
   ok(p['metadata[founding]'] === 'true', 'and flagged founding in metadata');
 
@@ -126,7 +145,8 @@ async function claimAndLogin(id) {
   var co2 = await call(checkout, { id: sid, token: stok }, { origin: 'https://eatminot.com' });
   ok(co2.status === 200, 'a standard checkout session is created');
   var p2 = lastStripe && lastStripe.params;
-  ok(p2['line_items[0][price_data][unit_amount]'] === '5900', 'at the standard $59');
+  ok(p2['line_items[0][price_data][unit_amount]'] === String(L.STANDARD_PRICE_CENTS),
+     'at the standard rate (' + L.STANDARD_PRICE_CENTS + ')');
   ok(p2['subscription_data[trial_period_days]'] === undefined, 'with no trial');
   ok(p2['metadata[founding]'] === 'false', 'and not flagged founding');
 

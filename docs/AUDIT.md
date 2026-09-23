@@ -22,10 +22,46 @@ were wrong as a result, and they are corrected in place below:
   [PR #30](https://github.com/hipaasynth-svg/EatMinot.com/pull/30), open since 17 Sep,
   implements **Founding Three: a 70-day trial then $79/mo locked for a year**, capped at 3
   venues and re-checked at checkout so a slot can't be double-booked. Not merged, so not
-  live, but written.
+  live, but written. (Both of those numbers turned out to be wrong once it merged — the
+  rates were inverted and the lock was unenforceable. See the dated update below.)
 - **§3.1 was overstated.** `@vercel/analytics` *is* a declared dependency in both
   `package.json` files (commit `332d3d8`, "Install Vercel Web Analytics"). It is never
   imported — no `inject()` call, no script tag — so nothing in the app collects anything.
+
+### Update — 2026-09-23: the price table was inverted, and is now reconciled
+
+PR #30 merged (EatMinot `b1f9b0a`), so §3.2's "not merged, so not live" no longer holds.
+Merging it exposed a worse problem than the one §3.2 described, which this audit did not
+catch because it read the offer's *mechanics* and not its *arithmetic*:
+
+**The founding tier was priced above the standard tier.** `api/checkout.js` charged
+$79/mo to founding venues and $59/mo to everyone else, so the "offer" sold to the three
+most valuable prospects in town charged them **$20/month more** than a walk-up listing,
+while `owner-pamphlet-trifold.html` advertised it as a discount. DrinkMinot's marketing
+described the exact opposite arrangement ($59 founding struck from $79) and its code
+could price neither, having no founding tier at all.
+
+Resolved on `hipaasynth-svg/serene-bardeen-rxn6xx`:
+
+| | Standard | Founding Three |
+|---|---|---|
+| Rate | **$79/mo** | **$59/mo** |
+| Trial | none | **10 weeks free** |
+| Slots | unlimited | **3 per site** |
+
+Both amounts now live only in `STANDARD_PRICE_CENTS` / `FOUNDING_PRICE_CENTS`
+(`api/_lib.js`) in each repo; the bare `'5900'` literal is gone from both checkouts.
+`tests/founding.test.js` (now in both repos) asserts the table and fails if the founding
+rate ever stops undercutting standard. DrinkMinot's founding tier was built to match, and
+its `store.js` `adminSetFlag` was forwarding neither `agentEnabled` nor `foundingOffer` —
+the same no-op defect §3.2 noted in EatMinot's, never ported across, which meant
+DrinkMinot's AI Assistant toggle did nothing at all.
+
+Every customer-facing "locked for a year" promise was **removed** rather than
+implemented, because `foundingLockUntil` is written and never read: no code path
+enforces it. A pricing commitment nothing can keep is a liability. The field guide's
+pricing (§ below) and DrinkMinot's "Founding **Five** / Only 5 spots" one-pager — which
+sold two slots past the cap `FOUNDING_LIMIT` enforces — were corrected in the same pass.
   Vercel Web Analytics may still be enabled at the project level, which would give
   platform-side pageviews. Either way it is pageviews, not the per-venue tap and
   redemption counts an owner needs, so the substance of the finding stands.
@@ -52,10 +88,12 @@ like. A single owner or competitor discovering this ends the product's credibili
 in a town of 48,000 people where everyone talks.
 
 Second: **there is no measurement of anything.** No analytics, no tap counter, no
-server-side record that a tag was ever scanned. An owner paying $59/month cannot be
+server-side record that a tag was ever scanned. An owner paying $79/month cannot be
 shown a single number proving it worked, and you cannot see which venues are alive.
-That is the classic local-SaaS churn killer, and it is also why you currently have
-no way to price anything above $59.
+That is the classic local-SaaS churn killer. It is also why pricing above $59 was hard
+to defend — and as of 2026-09-23 the standard rate *is* $79, so this finding is now the
+binding constraint on the whole price table rather than a future concern: the number went
+up while the evidence base for it did not.
 
 Third: **the free tier is where all the cost is.** The `minot-agent` service needs
 a dedicated VPS and LLM tokens, and it is gated by an admin toggle, not by Stripe.
@@ -115,7 +153,7 @@ Nothing is signed; there is no secret in the tag.
 
 > **Net effect:** "Rating requires a physical NFC tap or QR scan — one per phone per
 > day. No out-of-towners, no competitors, no bots" (`owner-pamphlet-trifold.html:219`)
-> is not true of the deployed system. This is the sentence the $59 is sold on.
+> is not true of the deployed system. This is the sentence the monthly fee is sold on.
 
 ### 1.4 Any member of the public can log in as any venue owner — **FIXED**
 > **Fixed** on `hipaasynth-svg/focused-sagan-si6qgh` in both repos. `seedProfile` no longer
@@ -270,7 +308,7 @@ counter, no impression counter, no redemption counter. `recordTap()` writes to
 stores punch state but is never aggregated. A site-wide pageview graph tells an owner
 nothing about their own listing.
 
-So the entire owner-visible evidence base for $59/month is a single number —
+So the entire owner-visible evidence base for the monthly fee is a single number —
 verified rating count — which is also the number they can't see move because of §1.
 
 **What's missing is one Redis hash per venue per day.** Taps, unique devices, punch
@@ -296,15 +334,21 @@ passing in a scripted run with Stripe stubbed.
 That PR also fixes something this audit missed: `store.js`'s `adminSetFlag` was not
 forwarding `agentEnabled`, so the AI Assistant admin toggle was a no-op.
 
-**What remains true:** it is not merged, so on the deployed site checkout is still a flat
-$59/mo with no trial, and any founding venue is being comped by hand with the admin `paid`
-toggle. The real finding is not "unbuilt" — it is **built and sitting unmerged for five
-days while the offer is being sold**, which is a worse failure mode because the sales
+**What remained true when this was written:** it was not merged, so checkout was still a
+flat $59/mo with no trial, and any founding venue was being comped by hand with the admin
+`paid` toggle. The real finding was not "unbuilt" — it was **built and sitting unmerged for
+five days while the offer was being sold**, which is a worse failure mode because the sales
 proposal and the running code disagree and nobody would notice until a card was charged.
+
+**Superseded 2026-09-23.** PR #30 has merged, and the concern above turned out to be
+understated: once live, the two prices were the wrong way round (founding cost *more* than
+standard). See the dated update at the top of this document.
 
 Pricing as of this audit, for the record, since the field guide had it wrong too: standard
 tier **$59/mo**; Founding Three **10 weeks free, then $79/mo locked for a year**, 3 slots
-total.
+total. **This table was itself wrong** — it has the discount backwards, and the year-long
+lock was never enforceable. Corrected 2026-09-23 to **$79/mo standard, $59/mo founding
+after 10 weeks free, 3 slots per site, no locked term**; see the dated update at the top.
 
 > **Sequencing note.** PR #30 and the security fix on
 > `hipaasynth-svg/focused-sagan-si6qgh` both edit `seedProfile`, `normalizeProfile` and the
@@ -318,7 +362,7 @@ total.
 `guide.html` has exactly **3 Spotlight slots**, backfilled with top-rated venues.
 Three slots on the one curated page is genuine scarcity — the only genuinely scarce
 inventory you own — and it is currently allocated by an admin clicking "Featured"
-(`api/admin.js:82`), bundled into the same $59 as everything else.
+(`api/admin.js:82`), bundled into the same flat monthly fee as everything else.
 
 ### 3.4 No failed-payment handling
 `api/stripe-webhook.js` handles `checkout.session.completed`,
@@ -376,7 +420,7 @@ Measured from the seed tables:
 23 of its 29 live venues list their address as literally `Minot, ND`, and 21 of 29
 say `Verify hours`. A drinks directory that can't tell you where a bar is or whether
 it's open is not a product a local will return to — and consumer return visits are
-the only thing that makes the tags worth $59 to an owner. This is the single
+the only thing that makes the tags worth a monthly fee to an owner. This is the single
 highest-ROI fix in the audit and it needs no code, just an afternoon with Google Maps.
 
 ### 4.2 …and on DrinkMinot there is no admin tool to fix it
