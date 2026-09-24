@@ -109,7 +109,10 @@ Stated plainly, because a README that hides these is how the pricing bug happene
   (`api/admin.js`), so the person paying $79 cannot see the number that justifies it.
   There is no tap counter and nothing time-series, so "this month vs last" is impossible.
   This is the highest-value thing left to build.
-- **3 restaurants have no street address** and **15 show unverified hours.**
+- **15 restaurants show unverified hours.** A local checking "is it open right now" gets
+  "Verify hours" instead of an answer. 3 have no street address on file, which no longer
+  affects directions — the Get directions button falls back to the venue name, which Google
+  Maps resolves — but the card still shows "Minot, ND" where a street would read better.
 - **No failed-payment handling.** `api/stripe-webhook.js` covers cancellation but not
   `invoice.payment_failed`, so an expired card keeps every paid feature until Stripe
   eventually cancels.
