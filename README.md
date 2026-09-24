@@ -109,10 +109,15 @@ Stated plainly, because a README that hides these is how the pricing bug happene
   (`api/admin.js`), so the person paying $79 cannot see the number that justifies it.
   There is no tap counter and nothing time-series, so "this month vs last" is impossible.
   This is the highest-value thing left to build.
-- **15 restaurants show unverified hours.** A local checking "is it open right now" gets
-  "Verify hours" instead of an answer. 3 have no street address on file, which no longer
-  affects directions — the Get directions button falls back to the venue name, which Google
-  Maps resolves — but the card still shows "Minot, ND" where a street would read better.
+- **Seed placeholders.** 15 of the 47 rows in `RAW` carry `"Verify hours"` and 3 carry
+  `"Minot, ND"` instead of a street. These are the *fallback* values a listing starts from,
+  not necessarily what the site serves: a stored profile keeps its own `hours` and `address`
+  (`normalizeProfile` backfills only `category`, `over21` and `alsoOnEat`), so anything
+  corrected through the admin editor — `setInfo` in `api/admin.js` — overrides them
+  permanently. Check the live `/api/state` for what is actually being served; don't read
+  `seedProfile()` and call it production, which is a mistake this file previously made.
+  Missing street addresses no longer affect directions either way: the button falls back to
+  the venue name, which Google Maps resolves.
 - **No failed-payment handling.** `api/stripe-webhook.js` covers cancellation but not
   `invoice.payment_failed`, so an expired card keeps every paid feature until Stripe
   eventually cancels.
