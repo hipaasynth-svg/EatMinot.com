@@ -85,6 +85,41 @@ Tags printed before this carry a bare `/?r=<id>`, so enforcement is **off by def
 > Rotating `EAT_TAG_SECRET` invalidates every printed tag at once. Only do it if a secret
 > leaks, and reprogram everything in the same sitting.
 
+### Turning Google Wallet on for this site
+
+DrinkMinot has it; this site does not, and the gap is **configuration only — no code**.
+`googleConfigured()` is just `!!(loadSA() && issuerId())`, `GET /api/pass` reports
+`{ google: … }` so the client renders the button from that, and `ensureClass()` creates the
+`<issuer>.eatminot_loyalty_v1` loyalty class on the first save. Set two variables and it
+works.
+
+**Both sites can share one issuer.** The class id is `issuerId() + '.' + CLASS_SUFFIX`, and
+the suffixes already differ (`eatminot_loyalty_v1` / `eatminot_reward_v1` here,
+`drinkminot_*` there), so there is no collision. Branding is separate too — `issuerName`,
+`programName` and `hexBackgroundColor` are per-repo.
+
+**You cannot copy the values out of DrinkMinot.** Both are stored as Vercel *sensitive*
+variables, which are hidden in the dashboard and not readable back. Get them from source:
+
+| Variable | Where it comes from |
+|---|---|
+| `GOOGLE_WALLET_ISSUER_ID` | The ~19-digit issuer id on your account page in the Google Wallet Console (`pay.google.com/business/console`). Same number for both sites — there is one issuer. |
+| `GOOGLE_WALLET_SA_JSON_BASE64` | Base64 of the service-account JSON key. The file downloaded when DrinkMinot was set up is the same one this site needs. If it is lost, mint a new key for the **same** service account (Google Cloud Console → IAM & Admin → Service Accounts → Keys → Add key → JSON); that does not invalidate DrinkMinot's. |
+
+Encode with no line wrapping — `base64 -w0 key.json` on Linux, `base64 -i key.json` on
+macOS — and set both to the Production target, then redeploy.
+
+Verify the value round-trips before pasting, because `loadSA()` fails **silently** if the
+decoded JSON does not parse or is missing `client_email` / `private_key` — the button simply
+never appears, with no error:
+
+```sh
+base64 -w0 key.json | base64 -d | python3 -c "import json,sys; print(json.load(sys.stdin)['client_email'])"
+```
+
+Nothing is needed on Google's side beyond the issuer you already have: the service account
+is already authorized as an issuer user, which is why DrinkMinot works.
+
 ## Rewards: earned, added to Wallet, redeemed once
 
 - Filling a card mints a coupon as a **server record** — code, venue, reward, expiry,
